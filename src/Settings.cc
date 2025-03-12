@@ -546,7 +546,6 @@ namespace ORB_SLAM3 {
 
 
 
-
                 }
             }
         }
