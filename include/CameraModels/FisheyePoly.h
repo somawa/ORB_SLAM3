@@ -44,6 +44,8 @@ namespace ORB_SLAM3 {
             mnId=nNextId++;
             mnType = CAM_FISHEYE;
         }
+
+        //This particular constructor for FisheyePoly class is called by Tracking.cc ParseCamParamFile for sCameraName == "Fisheye"
         FisheyePoly(const std::vector<float> _vParameters) : GeometricCamera(_vParameters), precision(1e-6), mvLappingArea(2,0) ,tvr(nullptr) {
             assert(mvParameters.size() == 8);
             mnId=nNextId++;

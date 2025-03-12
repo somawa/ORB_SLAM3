@@ -143,19 +143,31 @@ if __name__=="__main__":
     parser.add_argument('--save', help='save aligned second trajectory to disk (format: stamp2 x2 y2 z2)')
     parser.add_argument('--save_associations', help='save associated first and aligned second trajectory to disk (format: stamp1 x1 y1 z1 stamp2 x2 y2 z2)')
     parser.add_argument('--plot', help='plot the first and the aligned second trajectory to an image (format: png)')
-    parser.add_argument('--verbose', help='print all evaluation data (otherwise, only the RMSE absolute translational error in meters after alignment will be printed)', action='store_true')
-    parser.add_argument('--verbose2', help='print scale eror and RMSE absolute translational error in meters after alignment with and without scale correction', action='store_true')
+    parser.add_argument('--verbose', help='print( all evaluation data (otherwise, only the RMSE absolute translational error in meters after alignment will be printed)', action='store_true')
+    parser.add_argument('--verbose2', help='print( scale eror and RMSE absolute translational error in meters after alignment with and without scale correction', action='store_true')
     args = parser.parse_args()
 
     first_list = associate.read_file_list(args.first_file, False)
     second_list = associate.read_file_list(args.second_file, False)
+    
+    
+    #[(timestamp1, ['px', 'py', ...]), (timestamp2, ['px',' py', ...])]
+    print(f"\n\n\n\n\n\n\n\nFirst: {list(first_list.items())[:10]}\n\nSecond: {list(second_list.items())[:10]}\n\n\n\n\n\n")
 
-    matches = associate.associate(first_list, second_list,float(args.offset),float(args.max_difference))    
+    #[(a_timematch1, b_timematch1), (a_timematch2, b_timematch2), ...]
+    matches = associate.associate(first_list, second_list,float(args.offset),float(args.max_difference))
+    # print(f"\n\n\n\nMatches: {matches[:10]} \n\nTotal matches: {len(matches)}")    
     if len(matches)<2:
         sys.exit("Couldn't find matching timestamp pairs between groundtruth and estimated trajectory! Did you choose the correct sequence?")
+    
+    
+    # print(f"\n\n\nAt matching timestamp from first list: {matches[0][0]} \n\nContent from first_list to numpy: {first_list[matches[0][0]][0:3]}")
     first_xyz = numpy.matrix([[float(value) for value in first_list[a][0:3]] for a,b in matches]).transpose()
     second_xyz = numpy.matrix([[float(value)*float(args.scale) for value in second_list[b][0:3]] for a,b in matches]).transpose()
     dictionary_items = second_list.items()
+    
+    
+    #{timestamp: [data, ...]}
     sorted_second_list = sorted(dictionary_items)
 
     second_xyz_full = numpy.matrix([[float(value)*float(args.scale) for value in sorted_second_list[i][1][0:3]] for i in range(len(sorted_second_list))]).transpose() # sorted_second_list.keys()]).transpose()
@@ -164,34 +176,34 @@ if __name__=="__main__":
     second_xyz_aligned = scale * rot * second_xyz + trans
     second_xyz_notscaled = rot * second_xyz + trans
     second_xyz_notscaled_full = rot * second_xyz_full + trans
-    first_stamps = first_list.keys()
+    first_stamps = list(first_list.keys())
     first_stamps.sort()
     first_xyz_full = numpy.matrix([[float(value) for value in first_list[b][0:3]] for b in first_stamps]).transpose()
     
-    second_stamps = second_list.keys()
+    second_stamps = list(second_list.keys())
     second_stamps.sort()
     second_xyz_full = numpy.matrix([[float(value)*float(args.scale) for value in second_list[b][0:3]] for b in second_stamps]).transpose()
     second_xyz_full_aligned = scale * rot * second_xyz_full + trans
     
     if args.verbose:
-        print "compared_pose_pairs %d pairs"%(len(trans_error))
+        print("compared_pose_pairs %d pairs"%(len(trans_error)))
 
-        print "absolute_translational_error.rmse %f m"%numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error))
-        print "absolute_translational_error.mean %f m"%numpy.mean(trans_error)
-        print "absolute_translational_error.median %f m"%numpy.median(trans_error)
-        print "absolute_translational_error.std %f m"%numpy.std(trans_error)
-        print "absolute_translational_error.min %f m"%numpy.min(trans_error)
-        print "absolute_translational_error.max %f m"%numpy.max(trans_error)
-        print "max idx: %i" %numpy.argmax(trans_error)
+        print( "absolute_translational_error.rmse %f m"%numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error)))
+        print( "absolute_translational_error.mean %f m"%numpy.mean(trans_error))
+        print( "absolute_translational_error.median %f m"%numpy.median(trans_error))
+        print( "absolute_translational_error.std %f m"%numpy.std(trans_error))
+        print( "absolute_translational_error.min %f m"%numpy.min(trans_error))
+        print( "absolute_translational_error.max %f m"%numpy.max(trans_error))
+        print( "max idx: %i" %numpy.argmax(trans_error))
     else:
-        # print "%f, %f " % (numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error)),  scale)
-        # print "%f,%f" % (numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error)),  scale)
-        print "%f,%f,%f" % (numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error)), scale, numpy.sqrt(numpy.dot(trans_errorGT,trans_errorGT) / len(trans_errorGT)))
-        # print "%f" % len(trans_error)
+        # print( "%f, %f " % (numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error)),  scale))
+        # print( "%f,%f" % (numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error)),  scale))
+        print( "%f,%f,%f" % (numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error)), scale, numpy.sqrt(numpy.dot(trans_errorGT,trans_errorGT) / len(trans_errorGT))))
+        # print( "%f" % len(trans_error))
     if args.verbose2:
-        print "compared_pose_pairs %d pairs"%(len(trans_error))
-        print "absolute_translational_error.rmse %f m"%numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error))
-        print "absolute_translational_errorGT.rmse %f m"%numpy.sqrt(numpy.dot(trans_errorGT,trans_errorGT) / len(trans_errorGT))
+        print( "compared_pose_pairs %d pairs"%(len(trans_error)))
+        print( "absolute_translational_error.rmse %f m"%numpy.sqrt(numpy.dot(trans_error,trans_error) / len(trans_error)))
+        print( "absolute_translational_errorGT.rmse %f m"%numpy.sqrt(numpy.dot(trans_errorGT,trans_errorGT) / len(trans_errorGT)))
 
     if args.save_associations:
         file = open(args.save_associations,"w")

@@ -21,6 +21,8 @@
 #include "CameraModels/Pinhole.h"
 #include "CameraModels/KannalaBrandt8.h"
 
+#include "CameraModels/FisheyePoly.h"
+
 #include "System.h"
 
 #include <opencv2/core/persistence.hpp>
@@ -267,6 +269,63 @@ namespace ORB_SLAM3 {
                 static_cast<KannalaBrandt8*>(calibration1_)->mvLappingArea = vOverlapping;
             }
         }
+
+
+
+
+
+
+
+
+
+        //cameraModel corresponds to the returned value of the Camera.type field in the yaml file for the camera model
+        else if(cameraModel == "Fisheye"){
+
+            //variable cameraType_ is referenced by Tracking.cc which calls CameraType() on the settings object
+            //passed by system.cc which is obtained by calling Settings(strSettinFile, mSensor)
+
+            //cameraType_ is subsequently used to identify camera model for readCamera2()
+            //value assigned to cameraType_ corresponds to the value set in Settings.h
+            //Fisheye corresponds to 3 as defined in Settings.h
+            cameraType_ = Fisheye;
+
+            //Read intrinsic parameters
+            float fx = readParameter<float>(fSettings,"Camera1.fx",found);
+            float fy = readParameter<float>(fSettings,"Camera1.fy",found);
+            float cx = readParameter<float>(fSettings,"Camera1.cx",found);
+            float cy = readParameter<float>(fSettings,"Camera1.cy",found);
+
+            float k0 = readParameter<float>(fSettings,"Camera1.k1",found);
+            // float k1 = readParameter<float>(fSettings,"Camera1.k2",found);
+            // float k2 = readParameter<float>(fSettings,"Camera1.k3",found);
+            // float k3 = readParameter<float>(fSettings,"Camera1.k4",found);
+
+            vCalibration = {fx,fy,cx,cy,k0}; //},k1,k2,k3};
+
+            calibration1_ = new FisheyePoly(vCalibration);
+            originalCalib1_ = new FisheyePoly(vCalibration);
+
+            if(sensor_ == System::STEREO || sensor_ == System::IMU_STEREO){
+                int colBegin = readParameter<int>(fSettings,"Camera1.overlappingBegin",found);
+                int colEnd = readParameter<int>(fSettings,"Camera1.overlappingEnd",found);
+                vector<int> vOverlapping = {colBegin, colEnd};
+
+                static_cast<FisheyePoly*>(calibration1_)->mvLappingArea = vOverlapping;
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
         else{
             cerr << "Error: " << cameraModel << " not known" << endl;
             exit(-1);
@@ -332,6 +391,55 @@ namespace ORB_SLAM3 {
 
             static_cast<KannalaBrandt8*>(calibration2_)->mvLappingArea = vOverlapping;
         }
+
+
+
+
+
+
+
+
+
+
+        else if(cameraType_ == Fisheye){
+            //Read intrinsic parameters
+            float fx = readParameter<float>(fSettings,"Camera2.fx",found);
+            float fy = readParameter<float>(fSettings,"Camera2.fy",found);
+            float cx = readParameter<float>(fSettings,"Camera2.cx",found);
+            float cy = readParameter<float>(fSettings,"Camera2.cy",found);
+
+            float k0 = readParameter<float>(fSettings,"Camera1.k1",found);
+            // float k1 = readParameter<float>(fSettings,"Camera1.k2",found);
+            // float k2 = readParameter<float>(fSettings,"Camera1.k3",found);
+            // float k3 = readParameter<float>(fSettings,"Camera1.k4",found);
+
+
+            vCalibration = {fx,fy,cx,cy,k0}; //,k1,k2,k3};
+
+            calibration2_ = new FisheyePoly(vCalibration);
+            originalCalib2_ = new FisheyePoly(vCalibration);
+
+            int colBegin = readParameter<int>(fSettings,"Camera2.overlappingBegin",found);
+            int colEnd = readParameter<int>(fSettings,"Camera2.overlappingEnd",found);
+            vector<int> vOverlapping = {colBegin, colEnd};
+
+            static_cast<FisheyePoly*>(calibration2_)->mvLappingArea = vOverlapping;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         //Load stereo extrinsic calibration
         if(cameraType_ == Rectified){
@@ -403,6 +511,42 @@ namespace ORB_SLAM3 {
                         static_cast<KannalaBrandt8*>(calibration2_)->mvLappingArea[0] *= scaleColFactor;
                         static_cast<KannalaBrandt8*>(calibration2_)->mvLappingArea[1] *= scaleColFactor;
                     }
+
+
+
+
+
+
+
+
+
+
+
+
+                    if(cameraType_ == Fisheye){
+                        static_cast<FisheyePoly*>(calibration1_)->mvLappingArea[0] *= scaleColFactor;
+                        static_cast<FisheyePoly*>(calibration1_)->mvLappingArea[1] *= scaleColFactor;
+
+                        static_cast<FisheyePoly*>(calibration2_)->mvLappingArea[0] *= scaleColFactor;
+                        static_cast<FisheyePoly*>(calibration2_)->mvLappingArea[1] *= scaleColFactor;
+                    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 }
             }
         }
@@ -533,6 +677,32 @@ namespace ORB_SLAM3 {
         if(settings.cameraType_ == Settings::PinHole || settings.cameraType_ ==  Settings::Rectified){
             output << "Pinhole";
         }
+
+
+
+
+
+
+
+
+
+
+
+        elif(settings.cameraType_ ==  Settings::Fisheye){
+            output << "Fisheye";
+        }
+
+
+
+
+
+
+
+
+
+
+
+
         else{
             output << "Kannala-Brandt";
         }
@@ -555,6 +725,28 @@ namespace ORB_SLAM3 {
             if(settings.cameraType_ == Settings::PinHole || settings.cameraType_ ==  Settings::Rectified){
                 output << "Pinhole";
             }
+
+
+
+
+
+
+
+
+
+            elif(settings.cameraType_ ==  Settings::Fisheye){
+                output << "Fisheye";
+            }
+
+
+
+
+
+
+
+
+
+
             else{
                 output << "Kannala-Brandt";
             }
