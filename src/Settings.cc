@@ -423,6 +423,9 @@ namespace ORB_SLAM3 {
             int colEnd = readParameter<int>(fSettings,"Camera2.overlappingEnd",found);
             vector<int> vOverlapping = {colBegin, colEnd};
 
+
+            //mvLappingArea attribute of calibration2_ (FisheyePoly object) is initialised to (2, 0) 
+            //in the initialiser list of the constructor for FisheyePoly defined in FisheyePoly.h
             static_cast<FisheyePoly*>(calibration2_)->mvLappingArea = vOverlapping;
         }
 
@@ -478,11 +481,21 @@ namespace ORB_SLAM3 {
             if(!bNeedToRectify_){
                 //Update calibration
                 float scaleRowFactor = (float)newImSize_.height / (float)originalImSize_.height;
+                
+                //calibration1_->getParameter(1) will return mvParameters[1] of camera1
+                //hence getParameter(1) corresponds to fy and 
+                //getParameter(3) corresponds to cy
+                
                 calibration1_->setParameter(calibration1_->getParameter(1) * scaleRowFactor, 1);
                 calibration1_->setParameter(calibration1_->getParameter(3) * scaleRowFactor, 3);
 
 
                 if((sensor_ == System::STEREO || sensor_ == System::IMU_STEREO) && cameraType_ != Rectified){
+                    
+                    //calibration2_->getParameter(1) will return mvParameters[1] of camera2
+                    //hence getParameter(1) corresponds to fy and 
+                    //getParameter(3) corresponds to cy
+                    
                     calibration2_->setParameter(calibration2_->getParameter(1) * scaleRowFactor, 1);
                     calibration2_->setParameter(calibration2_->getParameter(3) * scaleRowFactor, 3);
                 }
@@ -501,6 +514,11 @@ namespace ORB_SLAM3 {
                 calibration1_->setParameter(calibration1_->getParameter(2) * scaleColFactor, 2);
 
                 if((sensor_ == System::STEREO || sensor_ == System::IMU_STEREO) && cameraType_ != Rectified){
+                    
+                    //calibration2_->getParameter(1) will return mvParameters[0] of camera2
+                    //hence getParameter(0) corresponds to fx and 
+                    //getParameter(2) corresponds to cx
+                    
                     calibration2_->setParameter(calibration2_->getParameter(0) * scaleColFactor, 0);
                     calibration2_->setParameter(calibration2_->getParameter(2) * scaleColFactor, 2);
 
@@ -524,6 +542,7 @@ namespace ORB_SLAM3 {
 
 
                     if(cameraType_ == Fisheye){
+
                         static_cast<FisheyePoly*>(calibration1_)->mvLappingArea[0] *= scaleColFactor;
                         static_cast<FisheyePoly*>(calibration1_)->mvLappingArea[1] *= scaleColFactor;
 
@@ -781,8 +800,11 @@ namespace ORB_SLAM3 {
             }
             output << " ]" << endl;
 
+
+            //Get camera2 parameters for Fisheye cameras (both KannalaBrandt and Fisheye)
+            //Thus need to add Fisheye type here as well
             if((settings.sensor_ == System::STEREO || settings.sensor_ == System::IMU_STEREO) &&
-                settings.cameraType_ == Settings::KannalaBrandt){
+                (settings.cameraType_ == Settings::KannalaBrandt || settings.cameraType_ == Settings::Fisheye)){
                 output << "\t-Camera 2 parameters after resize: [ ";
                 for(size_t i = 0; i < settings.calibration2_->size(); i++){
                     output << " " << settings.calibration2_->getParameter(i);
@@ -799,11 +821,33 @@ namespace ORB_SLAM3 {
             output << "\t-Stereo depth threshold : " << settings.thDepth_ << endl;
 
             if(settings.cameraType_ == Settings::KannalaBrandt){
+
+                //(settings.calibration1_) -> mvLappingArea gets the mvLappingArea value of the camera model instance
+                //that was assigned to calibration1_ parameter
+                //mvLappingArea value of the camera model is assigned in the corresponding model definition file
                 auto vOverlapping1 = static_cast<KannalaBrandt8*>(settings.calibration1_)->mvLappingArea;
                 auto vOverlapping2 = static_cast<KannalaBrandt8*>(settings.calibration2_)->mvLappingArea;
                 output << "\t-Camera 1 overlapping area: [ " << vOverlapping1[0] << " , " << vOverlapping1[1] << " ]" << endl;
                 output << "\t-Camera 2 overlapping area: [ " << vOverlapping2[0] << " , " << vOverlapping2[1] << " ]" << endl;
             }
+
+
+
+            if(settings.cameraType_ == Settings::Fisheye){
+
+                //(settings.calibration1_) -> mvLappingArea gets the mvLappingArea value of the camera model instance
+                //that was assigned to calibration1_ parameter
+                //mvLappingArea value of the camera model is assigned in the corresponding model definition file
+                auto vOverlapping1 = static_cast<FisheyePoly*>(settings.calibration1_)->mvLappingArea;
+                auto vOverlapping2 = static_cast<FisheyePoly*>(settings.calibration2_)->mvLappingArea;
+                output << "\t-Camera 1 overlapping area: [ " << vOverlapping1[0] << " , " << vOverlapping1[1] << " ]" << endl;
+                output << "\t-Camera 2 overlapping area: [ " << vOverlapping2[0] << " , " << vOverlapping2[1] << " ]" << endl;
+            }
+
+
+
+
+
         }
 
         if(settings.sensor_ == System::IMU_MONOCULAR || settings.sensor_ == System::IMU_STEREO || settings.sensor_ == System::IMU_RGBD) {

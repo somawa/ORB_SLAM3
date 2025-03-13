@@ -58,7 +58,7 @@ namespace ORB_SLAM3 {
             mnId=nNextId++;
             mnType = CAM_FISHEYE;
         }
-        FisheyePoly(FisheyePoly* pKannala) : GeometricCamera(pKannala->mvParameters), precision(pKannala->precision), mvLappingArea(2,0) ,tvr(nullptr) {
+        FisheyePoly(FisheyePoly* pFisheye) : GeometricCamera(pFisheye->mvParameters), precision(pFisheye->precision), mvLappingArea(2,0) ,tvr(nullptr) {
             assert(mvParameters.size() == 8);
             mnId=nNextId++;
             mnType = CAM_FISHEYE;

@@ -25,6 +25,9 @@
 #include "G2oTypes.h"
 #include "Optimizer.h"
 #include "Pinhole.h"
+
+//Reference to Kannala camera model file, 
+//corresponding FisheyePoly model file is included as well
 #include "KannalaBrandt8.h"
 #include "MLPnPsolver.h"
 #include "GeometricTools.h"
@@ -564,19 +567,49 @@ void Tracking::newParameterLoader(Settings *settings) {
     mK_(0,2) = mpCamera->getParameter(2);
     mK_(1,2) = mpCamera->getParameter(3);
 
+
+
+
+
+
+
+    //Added cameraType() Settings::Fisheye since it is a valid camera model to satisfy
+    //second camera for stereo, in the same logic that cameraType() Settings::KannalaBrandt is used here as well
+    //Settings::Fisheye corresponds to the value assigned to the Fisheye variable in enum CameraType in settings.h
     if((mSensor==System::STEREO || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD) &&
-        settings->cameraType() == Settings::KannalaBrandt){
+        (settings->cameraType() == Settings::KannalaBrandt || settings->cameraType() == Settings::Fisheye)){
         
 
-        //Check if need to add FisheyePoly here
+        //Check if need to add FisheyePoly here and why pinhole cameraType() is not used here
         
+        //camera2() returns calibration2_ which is the calibration2_ variable of settings.cc
+        //calibration2_ is the camera model instance in settings.cc created from the constructor in the
+        //corresponding camera model header file (e.g. FisheyePoly.h)
         mpCamera2 = settings->camera2();
         mpCamera2 = mpAtlas->AddCamera(mpCamera2);
 
+        
+        //Tlr() calls the Tlr() defined in settings.h which returns Tlr_ variable
+        //Tlr_ is defined in settings.cc to be Converter::toSophus(cvTlr);
         mTlr = settings->Tlr();
 
         mpFrameDrawer->both = true;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
     if(mSensor==System::STEREO || mSensor==System::RGBD || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD ){
         mbf = settings->bf();

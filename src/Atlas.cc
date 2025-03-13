@@ -23,6 +23,9 @@
 #include "Pinhole.h"
 #include "KannalaBrandt8.h"
 
+
+#include "FisheyePoly.h"
+
 namespace ORB_SLAM3
 {
 
@@ -133,14 +136,31 @@ GeometricCamera* Atlas::AddCamera(GeometricCamera* pCam)
                 index_cam = i;
             }
         }
+
+
+
+
+
+        //KannalaBrandt8 specifically defined here for FISHEYE
+        //Adding FisheyePoly condition alongside check for KannalaBrandt8 type
+        //since both are FISHEYE Camera type as assigned in their respective camera model header files
+        //in the constructor functions
         else if(pCam->GetType() == GeometricCamera::CAM_FISHEYE)
         {
-            if(((KannalaBrandt8*)pCam_i)->IsEqual(pCam))
+            if(((KannalaBrandt8*)pCam_i)->IsEqual(pCam) || ((FisheyePoly*)pCam_i)->IsEqual(pCam))
             {
                 bAlreadyInMap = true;
                 index_cam = i;
             }
         }
+
+
+
+
+
+
+
+
     }
 
     if(bAlreadyInMap)
