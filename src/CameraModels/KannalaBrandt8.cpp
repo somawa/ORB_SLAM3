@@ -26,6 +26,7 @@ namespace ORB_SLAM3 {
 //BOOST_CLASS_EXPORT_GUID(KannalaBrandt8, "KannalaBrandt8")
 
     cv::Point2f KannalaBrandt8::project(const cv::Point3f &p3D) {
+        // std::cout << "Projecting p2f" << std::endl;
         const float x2_plus_y2 = p3D.x * p3D.x + p3D.y * p3D.y;
         const float theta = atan2f(sqrtf(x2_plus_y2), p3D.z);
         const float psi = atan2f(p3D.y, p3D.x);
@@ -44,6 +45,7 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Vector2d KannalaBrandt8::project(const Eigen::Vector3d &v3D) {
+        // std::cout << "Projecting v2d" << std::endl;
         const double x2_plus_y2 = v3D[0] * v3D[0] + v3D[1] * v3D[1];
         const double theta = atan2f(sqrtf(x2_plus_y2), v3D[2]);
         const double psi = atan2f(v3D[1], v3D[0]);
@@ -65,6 +67,7 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Vector2f KannalaBrandt8::project(const Eigen::Vector3f &v3D) {
+        // std::cout << "Projecting v2f" << std::endl;
         const float x2_plus_y2 = v3D[0] * v3D[0] + v3D[1] * v3D[1];
         const float theta = atan2f(sqrtf(x2_plus_y2), v3D[2]);
         const float psi = atan2f(v3D[1], v3D[0]);
@@ -93,6 +96,7 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Vector2f KannalaBrandt8::projectMat(const cv::Point3f &p3D) {
+        // std::cout << "Projecting mat v2f" << std::endl;
         cv::Point2f point = this->project(p3D);
         return Eigen::Vector2f(point.x, point.y);
     }
@@ -109,6 +113,7 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Vector3f KannalaBrandt8::unprojectEig(const cv::Point2f &p2D) {
+        // std::cout << "Unprojecting v3f" << std::endl;
         cv::Point3f ray = this->unproject(p2D);
         return Eigen::Vector3f(ray.x, ray.y, ray.z);
     }
@@ -143,6 +148,7 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Matrix<double, 2, 3> KannalaBrandt8::projectJac(const Eigen::Vector3d &v3D) {
+        // std::cout << "ProjJac" << std::endl;
         double x2 = v3D[0] * v3D[0], y2 = v3D[1] * v3D[1], z2 = v3D[2] * v3D[2];
         double r2 = x2 + y2;
         double r = sqrt(r2);
@@ -407,6 +413,8 @@ namespace ORB_SLAM3 {
 
     bool KannalaBrandt8::IsEqual(GeometricCamera* pCam)
     {
+        std::cout << "Checking if KannalaBrandt camera" << pCam -> GetType() << "is equal" ;
+        
         if(pCam->GetType() != GeometricCamera::CAM_FISHEYE)
             return false;
 

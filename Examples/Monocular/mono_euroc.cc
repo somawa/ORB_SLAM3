@@ -80,7 +80,9 @@ int main(int argc, char **argv)
     int fps = 20;
     float dT = 1.f/fps;
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::MONOCULAR, false);
+    cout << "Creating SLAM ORB_SLAM3 System object instance" << endl;
+    ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::MONOCULAR, true);
+    cout << "Created SLAM object instance" << endl;
     float imageScale = SLAM.GetImageScale();
 
     double t_resize = 0.f;
@@ -137,7 +139,9 @@ int main(int argc, char **argv)
 
             // Pass the image to the SLAM system
             // cout << "tframe = " << tframe << endl;
+            cout << endl << "Triggering TrackMonocular() with one image for time frame:" << tframe << endl;
             SLAM.TrackMonocular(im,tframe); // TODO change to monocular_inertial
+            cout << "End of tracking for image with time frame:" << tframe << endl;
 
     #ifdef COMPILEDWITHC11
             std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();

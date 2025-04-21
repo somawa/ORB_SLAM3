@@ -15,7 +15,6 @@
 * You should have received a copy of the GNU General Public License along with ORB-SLAM3.
 * If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "FisheyePoly.h"
 
 #include <boost/serialization/export.hpp>
@@ -26,13 +25,14 @@ namespace ORB_SLAM3 {
 //BOOST_CLASS_EXPORT_GUID(FisheyePoly, "FisheyePoly")
 
     cv::Point2f FisheyePoly::project(const cv::Point3f &p3D) {
+        // std::cout << "Projecting p2f" << std::endl;
         //p3D is ray input R=[rx, ry, rz]
 
         //l2_norm = |R|
         const float l2_norm = sqrtf(p3D.x * p3D.x + p3D.y * p3D.y + p3D.z * p3D.z);
 
         //theta = cos_inv(rz/|R|) 
-        const float theta = acos(p3D.z, l2_norm);
+        const float theta = acos(p3D.z / l2_norm);
 
         //r = k1 * theta
         float r = mvParameters[4] * theta;
@@ -46,12 +46,13 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Vector2d FisheyePoly::project(const Eigen::Vector3d &v3D) {
+        // std::cout << "Projecting v2d" << std::endl;
 
         //l2_norm = |R|
         const double l2_norm = sqrt(v3D[0] * v3D[0] + v3D[1] * v3D[1] + v3D[2] * v3D[2]);
 
         //theta = cos_inv(rz/|R|) 
-        const double theta = acos(v3D[2], l2_norm);
+        const double theta = acos(v3D[2] / l2_norm);
 
         //r = k1 * theta
         double r = mvParameters[4] * theta;
@@ -67,6 +68,7 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Vector2f FisheyePoly::project(const Eigen::Vector3f &v3D) {
+        // std::cout << "Projecting v2f" << std::endl;
 
 
 
@@ -74,7 +76,7 @@ namespace ORB_SLAM3 {
         const double l2_norm = sqrt(v3D[0] * v3D[0] + v3D[1] * v3D[1] + v3D[2] * v3D[2]);
 
         //theta = cos_inv(rz/|R|) 
-        const double theta = acos(v3D[2], l2_norm);
+        const double theta = acos(v3D[2] / l2_norm);
 
         //r = k1 * theta
         float r = mvParameters[4] * theta;
@@ -98,6 +100,7 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Vector2f FisheyePoly::projectMat(const cv::Point3f &p3D) {
+        // std::cout << "Projecting mat v2f" << std::endl;
         cv::Point2f point = this->project(p3D);
         return Eigen::Vector2f(point.x, point.y);
     }
@@ -114,6 +117,7 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Vector3f FisheyePoly::unprojectEig(const cv::Point2f &p2D) {
+        // std::cout << "Unprojecting v3f" << std::endl;
         cv::Point3f ray = this->unproject(p2D);
         return Eigen::Vector3f(ray.x, ray.y, ray.z);
     }
@@ -123,7 +127,7 @@ namespace ORB_SLAM3 {
         cv::Point2f P_d;
         P_d.x = p2D.x - mvParameters[2];
         P_d.y = p2D.y - mvParameters[3];
-        float P_d_norm = sqrt(P_d.x * P_d.x + P_d.y + P_d.y);
+        float P_d_norm = sqrt(P_d.x * P_d.x + P_d.y * P_d.y);
 
         float theta = P_d_norm / mvParameters[4];
 
@@ -133,35 +137,71 @@ namespace ORB_SLAM3 {
     }
 
     Eigen::Matrix<double, 2, 3> FisheyePoly::projectJac(const Eigen::Vector3d &v3D) {
-        double x2 = v3D[0] * v3D[0], y2 = v3D[1] * v3D[1], z2 = v3D[2] * v3D[2];
-        double r2 = x2 + y2;
-        double r = sqrt(r2);
-        double r3 = r2 * r;
-        double theta = atan2(r, v3D[2]);
+        // std::cout << "ProjJac" << std::endl;
 
-        double theta2 = theta * theta, theta3 = theta2 * theta;
-        double theta4 = theta2 * theta2, theta5 = theta4 * theta;
-        double theta6 = theta2 * theta4, theta7 = theta6 * theta;
-        double theta8 = theta4 * theta4, theta9 = theta8 * theta;
+        double cx = mvParameters[2];
+        double cy = mvParameters[3];
+        double k1 = mvParameters[4];
 
-        double f = theta + theta3 * mvParameters[4] + theta5 * mvParameters[5] + theta7 * mvParameters[6] +
-                  theta9 * mvParameters[7];
-        double fd = 1 + 3 * mvParameters[4] * theta2 + 5 * mvParameters[5] * theta4 + 7 * mvParameters[6] * theta6 +
-                   9 * mvParameters[7] * theta8;
+        double x = v3D[0];
+        double y = v3D[1];
+        double z = v3D[2];
+        
+        double R = sqrt(x * x + y * y + z * z);
+        double R_p = sqrt(x * x + y * y);
 
-        Eigen::Matrix<double, 2, 3> JacGood;
-        JacGood(0, 0) = mvParameters[0] * (fd * v3D[2] * x2 / (r2 * (r2 + z2)) + f * y2 / r3);
-        JacGood(1, 0) =
-                mvParameters[1] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
+        double theta = acos(z / R);
 
-        JacGood(0, 1) =
-                mvParameters[0] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
-        JacGood(1, 1) = mvParameters[1] * (fd * v3D[2] * y2 / (r2 * (r2 + z2)) + f * x2 / r3);
+        double f_theta  = k1 * theta;
 
-        JacGood(0, 2) = -mvParameters[0] * fd * v3D[0] / (r2 + z2);
-        JacGood(1, 2) = -mvParameters[1] * fd * v3D[1] / (r2 + z2);
+        
+        Eigen::Matrix<double, 2, 3> d_proj_d_p3d;
 
-        return JacGood;
+        d_proj_d_p3d(0, 0) =
+            k1 * std::pow(x, 2)*z/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1)*std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0)) - k1*std::pow(x, 2)*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::pow(std::pow(x, 2) + std::pow(y, 2), 3.0/2.0) + k1*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::sqrt(std::pow(x, 2) + std::pow(y, 2));
+        d_proj_d_p3d(1, 0) =
+            k1*x*y*z/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1)*std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0)) - k1*x*y*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::pow(std::pow(x, 2) + std::pow(y, 2), 3.0/2.0);
+        d_proj_d_p3d(0, 1) =
+            k1*x*y*z/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1)*std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0)) - k1*x*y*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::pow(std::pow(x, 2) + std::pow(y, 2), 3.0/2.0);
+        d_proj_d_p3d(1, 1) =
+            k1*std::pow(y, 2)*z/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1)*std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0)) - k1*std::pow(y, 2)*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::pow(std::pow(x, 2) + std::pow(y, 2), 3.0/2.0) + k1*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::sqrt(std::pow(x, 2) + std::pow(y, 2));
+        d_proj_d_p3d(0, 2) = -k1*x*(-std::pow(z, 2)/std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0) + std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), -1.0/2.0))/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1));
+        d_proj_d_p3d(1, 2) = -k1*y*(-std::pow(z, 2)/std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0) + std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), -1.0/2.0))/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1));
+        // d_proj_d_p3d(0, 3) = double(0); //Scalar(0);
+        // d_proj_d_p3d(1, 3) = double(0); //Scalar(0);
+        // std::cout << d_proj_d_p3d << std::endl;
+        return d_proj_d_p3d;
+        
+
+        // double x2 = v3D[0] * v3D[0], y2 = v3D[1] * v3D[1], z2 = v3D[2] * v3D[2];
+        // double r2 = x2 + y2;
+        // double r = sqrt(r2);
+        // double r3 = r2 * r;
+        // double theta = atan2(r, v3D[2]);
+
+        // double theta2 = theta * theta, theta3 = theta2 * theta;
+        // double theta4 = theta2 * theta2, theta5 = theta4 * theta;
+        // double theta6 = theta2 * theta4, theta7 = theta6 * theta;
+        // double theta8 = theta4 * theta4, theta9 = theta8 * theta;
+
+        // double f = theta + theta3 * mvParameters[4] + theta5 * mvParameters[5] + theta7 * mvParameters[6] +
+        //           theta9 * mvParameters[7];
+        // double fd = 1 + 3 * mvParameters[4] * theta2 + 5 * mvParameters[5] * theta4 + 7 * mvParameters[6] * theta6 +
+        //            9 * mvParameters[7] * theta8;
+
+        // Eigen::Matrix<double, 2, 3> JacGood;
+        // JacGood(0, 0) = mvParameters[0] * (fd * v3D[2] * x2 / (r2 * (r2 + z2)) + f * y2 / r3);
+        // JacGood(1, 0) =
+        //         mvParameters[1] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
+
+        // JacGood(0, 1) =
+        //         mvParameters[0] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
+        // JacGood(1, 1) = mvParameters[1] * (fd * v3D[2] * y2 / (r2 * (r2 + z2)) + f * x2 / r3);
+
+        // JacGood(0, 2) = -mvParameters[0] * fd * v3D[0] / (r2 + z2);
+        // JacGood(1, 2) = -mvParameters[1] * fd * v3D[1] / (r2 + z2);
+
+        // return JacGood;
     }
 
     bool FisheyePoly::ReconstructWithTwoViews(const std::vector<cv::KeyPoint>& vKeys1, const std::vector<cv::KeyPoint>& vKeys2, const std::vector<int> &vMatches12,
@@ -397,6 +437,7 @@ namespace ORB_SLAM3 {
 
     bool FisheyePoly::IsEqual(GeometricCamera* pCam)
     {
+        std::cout << "Checking if FisheyePoly camera" << pCam -> GetType() << "is equal" ;
         if(pCam->GetType() != GeometricCamera::CAM_FISHEYE)
             return false;
 
@@ -417,7 +458,7 @@ namespace ORB_SLAM3 {
                 break;
             }
         }
-        return is_same_camera;
+        return false; //is_same_camera;
     }
 
 }

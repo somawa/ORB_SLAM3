@@ -528,6 +528,8 @@ namespace ORB_SLAM3
 
         }
 
+        cout << "Number of matches: " << nmatches;
+
         return nmatches;
     }
 

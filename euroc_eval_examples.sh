@@ -3,10 +3,49 @@ pathDatasetEuroc='/home/dh/ros1_orbslam/ws' #Example, it is necesary to change i
 
 # Single Session Example (Pure visual)
 # echo "Launching MH01 with Stereo sensor"
-# ./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/EuRoC_fisheye.yaml "$pathDatasetEuroc"/MH01 ./Examples/Stereo/EuRoC_TimeStamps/MH01.txt dataset-MH01_stereo
+# ./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/EuRoC.yaml "$pathDatasetEuroc"/MH01 ./Examples/Stereo/EuRoC_TimeStamps/MH01.txt dataset-MH01_stereo
+# # ./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/RealSense_T265.yaml "$pathDatasetEuroc"/MH01 ./Examples/Stereo/EuRoC_TimeStamps/MH01.txt dataset-MH01_stereo
+
 # echo "------------------------------------"
-echo "Evaluation of MH01 trajectory with Stereo sensor"
-python evaluation/evaluate_ate_scale.py evaluation/Ground_truth/EuRoC_left_cam/MH01_GT.txt f_dataset-MH01_stereo.txt --plot MH01_stereo.pdf --verbose 
+# # echo "Evaluation of MH01 trajectory with Stereo sensor"
+# # python evaluation/evaluate_ate_scale.py evaluation/Ground_truth/EuRoC_left_cam/MH01_GT.txt f_dataset-MH01_stereo.txt --plot MH01_stereo.pdf --verbose 
+
+
+#############testing png_rawtime_invis on Stereo-only VIO on different camera models
+# echo "Launching png_rawtime_invis with Stereo sensor"
+# # ./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/TUM-VI.yaml "$pathDatasetEuroc"/png_rawtime_noduplicates_invis /home/dh/ros1_orbslam/ws/timestamp_png_rawtime_noduplicates_invis.txt dataset-png_rawtime_noduplicates_invis_stereo
+# # ./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/EuRoC_kannala.yaml "$pathDatasetEuroc"/shrinked_png_rawtime_noduplicates_invis /home/dh/ros1_orbslam/ws/timestamp_shrinked_png_rawtime_noduplicates_invis.txt dataset-shrinked_png_rawtime_noduplicates_invis_stereo
+
+# # ./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/EuRoC_fisheye.yaml "$pathDatasetEuroc"/png_rawtime_noduplicates_invis /home/dh/ros1_orbslam/ws/timestamp_png_rawtime_noduplicates_invis.txt dataset-png_rawtime_noduplicates_invis_stereo
+
+# ./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/EuRoC_shrinked_fisheye.yaml "$pathDatasetEuroc"/shrinked_png_rawtime_noduplicates_invis /home/dh/ros1_orbslam/ws/timestamp_shrinked_png_rawtime_noduplicates_invis.txt dataset-shrinked_png_rawtime_noduplicates_invis_stereo
+
+# # ./Examples/Stereo/stereo_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/RealSense_T265.yaml "$pathDatasetEuroc"/png_rawtime_noduplicates_invis /home/dh/ros1_orbslam/ws/timestamp_png_rawtime_noduplicates_invis.txt dataset-png_rawtime_noduplicates_invis_stereo
+# echo "------------------------------------"
+# # echo "Evaluation of png_rawtime_invis trajectory with Stereo sensor"
+# # python evaluation/evaluate_ate_scale.py evaluation/Ground_truth/EuRoC_left_cam/MH01_GT.txt f_dataset-MH01_stereo.txt --plot MH01_stereo.pdf --verbose 
+
+
+
+############testing png_rawtime_invis on Stereo-only monocular setup
+# Monocular Examples
+echo "Launching png_rawtime_invis with Monocular sensor"
+# ./Examples/Monocular/mono_euroc Vocabulary/ORBvoc.txt Examples/Stereo/EuRoC_shrinked_fisheye.yaml "$pathDatasetEuroc"/shrinked_png_rawtime_noduplicates_invis /home/dh/ros1_orbslam/ws/timestamp_shrinked_png_rawtime_noduplicates_invis.txt dataset-shrinked_png_rawtime_noduplicates_invis_stereo_mono
+
+./Examples/Monocular/mono_euroc Vocabulary/ORBvoc.txt Examples/Monocular/EuRoC_fisheye_f0.yaml "$pathDatasetEuroc"/shrinked_png_rawtime_noduplicates_invis /home/dh/ros1_orbslam/ws/timestamp_shrinked_png_rawtime_noduplicates_invis.txt dataset-shrinked_png_rawtime_noduplicates_invis_stereo_mono
+
+echo "Evaluation of png_rawtime_invis trajectory with Stereo sensor"
+python evaluation/evaluate_ate_scale.py f_dataset-shrinked_png_rawtime_noduplicates_invis_stereo_mono.txt f_dataset-shrinked_png_rawtime_noduplicates_invis_stereo_mono.txt --plot shrinked_png_rawtime_noduplicates_invis_mono_stereo.pdf --verbose 
+
+
+
+###########testing MH01 on visual only monocular setup
+# echo "Launching MH01 with Monocular sensor"
+# ./Examples/Monocular/mono_euroc ./Vocabulary/ORBvoc.txt ./Examples/Stereo/EuRoC.yaml "$pathDatasetEuroc"/MH01 ./Examples/Stereo/EuRoC_TimeStamps/MH01.txt dataset-MH01_mono
+# # ./Examples/Monocular/mono_euroc ./Vocabulary/ORBvoc.txt ./Examples/Monocular/EuRoC_pinhole_f0.yaml "$pathDatasetEuroc"/MH01 ./Examples/Stereo/EuRoC_TimeStamps/MH01.txt dataset-MH01_mono
+
+# # echo "Evaluation of MH01 trajectory with Stereo sensor"
+# # python evaluation/evaluate_ate_scale.py f_dataset-MH01_mono.txt f_dataset-MH01_mono.txt --plot MH01_mono_true.pdf --verbose 
 
 
 

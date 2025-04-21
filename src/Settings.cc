@@ -188,6 +188,7 @@ namespace ORB_SLAM3 {
 
         //Read camera model
         string cameraModel = readParameter<string>(fSettings,"Camera.type",found);
+        cout << cameraModel << "detected" << endl;
 
         vector<float> vCalibration;
         if (cameraModel == "PinHole") {
@@ -280,6 +281,7 @@ namespace ORB_SLAM3 {
 
         //cameraModel corresponds to the returned value of the Camera.type field in the yaml file for the camera model
         else if(cameraModel == "Fisheye"){
+            cout << cameraModel << "detected" << endl;
 
             //variable cameraType_ is referenced by Tracking.cc which calls CameraType() on the settings object
             //passed by system.cc which is obtained by calling Settings(strSettinFile, mSensor)
@@ -706,7 +708,7 @@ namespace ORB_SLAM3 {
 
 
 
-        elif(settings.cameraType_ ==  Settings::Fisheye){
+        else if(settings.cameraType_ ==  Settings::Fisheye){
             output << "Fisheye";
         }
 
@@ -752,7 +754,7 @@ namespace ORB_SLAM3 {
 
 
 
-            elif(settings.cameraType_ ==  Settings::Fisheye){
+            else if(settings.cameraType_ ==  Settings::Fisheye){
                 output << "Fisheye";
             }
 
@@ -768,7 +770,7 @@ namespace ORB_SLAM3 {
             else{
                 output << "Kannala-Brandt";
             }
-            output << "" << ": [";
+            output << ")" << ": [";
             for(size_t i = 0; i < settings.originalCalib2_->size(); i++){
                 output << " " << settings.originalCalib2_->getParameter(i);
             }
@@ -834,6 +836,7 @@ namespace ORB_SLAM3 {
 
 
             if(settings.cameraType_ == Settings::Fisheye){
+                cout << "Fisheye overlapping area: ";
 
                 //(settings.calibration1_) -> mvLappingArea gets the mvLappingArea value of the camera model instance
                 //that was assigned to calibration1_ parameter

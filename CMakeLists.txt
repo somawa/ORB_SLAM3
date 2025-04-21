@@ -80,6 +80,7 @@ src/ImuTypes.cc
 src/G2oTypes.cc
 src/CameraModels/Pinhole.cpp
 src/CameraModels/KannalaBrandt8.cpp
+src/CameraModels/FisheyePoly.cpp
 src/OptimizableTypes.cpp
 src/MLPnPsolver.cpp
 src/GeometricTools.cc

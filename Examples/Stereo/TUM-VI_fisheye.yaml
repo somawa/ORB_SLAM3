@@ -5,7 +5,7 @@
 #--------------------------------------------------------------------------------------------
 File.version: "1.0"
 
-Camera.type: "KannalaBrandt8"
+Camera.type: "Fisheye"
 
 # Left Camera calibration and distortion parameters (OpenCV)
 Camera1.fx: 190.97847715128717
@@ -14,10 +14,10 @@ Camera1.cx: 254.93170605935475
 Camera1.cy: 256.8974428996504
 
 # Kannala-Brandt distortion parameters
-Camera1.k1: 0.0034823894022493434
-Camera1.k2: 0.0007150348452162257
-Camera1.k3: -0.0020532361418706202
-Camera1.k4: 0.00020293673591811182
+Camera1.k1: 190.97847715128717
+Camera1.k2: 0.000
+Camera1.k3: 0.000
+Camera1.k4: 0.000
 
 # Right Camera calibration and distortion parameters (OpenCV)
 Camera2.fx: 190.44236969414825
@@ -26,10 +26,10 @@ Camera2.cx: 252.59949716835982
 Camera2.cy: 254.91723064636983
 
 # Kannala-Brandt distortion parameters
-Camera2.k1: 0.0034003170790442797
-Camera2.k2: 0.001766278153469831
-Camera2.k3: -0.00266312569781606
-Camera2.k4: 0.0003299517423931039
+Camera2.k1: 190.44236969414825
+Camera2.k2: 0.000
+Camera2.k3: 0.000
+Camera2.k4: 0.000
 
 Stereo.T_c1_c2: !!opencv-matrix
   rows: 4

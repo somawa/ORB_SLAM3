@@ -26,6 +26,8 @@
 #include "Pinhole.h"
 #include "KannalaBrandt8.h"
 
+#include "FisheyePoly.h"
+
 #include <set>
 #include <mutex>
 #include <boost/serialization/vector.hpp>

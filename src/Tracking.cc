@@ -53,8 +53,10 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpAtlas(pAtlas), mnLastRelocFrameId(0), time_recently_lost(5.0),
     mnInitialFrameId(0), mbCreatedMap(false), mnFirstFrameId(0), mpCamera2(nullptr), mpLastKeyFrame(static_cast<KeyFrame*>(NULL))
 {
+    cout << "Tracking object for sensor type:" << sensor << endl;
     // Load camera parameters from settings file
     if(settings){
+        cout << "Getting fsettings variable created in System, loading kmatrix with camera intrinsics" << endl;
         newParameterLoader(settings);
     }
     else{
@@ -124,7 +126,9 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
         {
             std::cout << " is unknown" << std::endl;
         }
+        cout << "done with camera" << pCam -> GetType();
     }
+    std::cout << "continuing";
 
 #ifdef REGISTER_TIMES
     vdRectStereo_ms.clear();
@@ -542,8 +546,10 @@ Tracking::~Tracking()
 }
 
 void Tracking::newParameterLoader(Settings *settings) {
+    cout << "Loading parameters in newParameterLoader" << endl;
     mpCamera = settings->camera1();
     mpCamera = mpAtlas->AddCamera(mpCamera);
+    cout << "Added camera1" << mpCamera -> getParameter(0);
 
     if(settings->needToUndistort()){
         mDistCoef = settings->camera1DistortionCoef();
@@ -576,15 +582,19 @@ void Tracking::newParameterLoader(Settings *settings) {
     //Added cameraType() Settings::Fisheye since it is a valid camera model to satisfy
     //second camera for stereo, in the same logic that cameraType() Settings::KannalaBrandt is used here as well
     //Settings::Fisheye corresponds to the value assigned to the Fisheye variable in enum CameraType in settings.h
-    if((mSensor==System::STEREO || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD) &&
-        (settings->cameraType() == Settings::KannalaBrandt || settings->cameraType() == Settings::Fisheye)){
+    // if((mSensor==System::STEREO || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD) &&
+    //     (settings->cameraType() == Settings::KannalaBrandt || settings->cameraType() == Settings::Fisheye)){
         
+    if((mSensor==System::STEREO || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD) ){
+        
+        cout << "Sensor is " << mSensor << "so adding camera2 as well" << endl;
 
         //Check if need to add FisheyePoly here and why pinhole cameraType() is not used here
         
         //camera2() returns calibration2_ which is the calibration2_ variable of settings.cc
         //calibration2_ is the camera model instance in settings.cc created from the constructor in the
         //corresponding camera model header file (e.g. FisheyePoly.h)
+        cout << "Adding camera 2" << endl;
         mpCamera2 = settings->camera2();
         mpCamera2 = mpAtlas->AddCamera(mpCamera2);
 
@@ -627,6 +637,7 @@ void Tracking::newParameterLoader(Settings *settings) {
     mMinFrames = 0;
     mMaxFrames = settings->fps();
     mbRGB = settings->rgb();
+    cout << "curr mbRGB setting is" << mbRGB;
 
     //ORB parameters
     int nFeatures = settings->nFeatures();
@@ -664,6 +675,7 @@ void Tracking::newParameterLoader(Settings *settings) {
 
 bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
 {
+    cout << "Defaulting to ParseCamParamFile with newly created fSettings object to load camera settings" << endl;
     mDistCoef = cv::Mat::zeros(4,1,CV_32F);
     cout << endl << "Camera Parameters: " << endl;
     bool b_miss_params = false;
@@ -1195,6 +1207,7 @@ bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
         if(!node.empty() && node.isReal())
         {
             fx = node.real();
+            cout << "fx is here" << fx << endl;
         }
         else
         {
@@ -1891,14 +1904,16 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
 
     if(mImGray.channels()==3)
     {
-        //cout << "Image with 3 channels" << endl;
+        cout << "Image with 3 channels" << endl;
         if(mbRGB)
         {
+            cout << "Triggered mbRGB to gray" << endl;
             cvtColor(mImGray,mImGray,cv::COLOR_RGB2GRAY);
             cvtColor(imGrayRight,imGrayRight,cv::COLOR_RGB2GRAY);
         }
         else
         {
+            cout << "Triggered nonmbRGB to gray" << endl;
             cvtColor(mImGray,mImGray,cv::COLOR_BGR2GRAY);
             cvtColor(imGrayRight,imGrayRight,cv::COLOR_BGR2GRAY);
         }
@@ -1923,7 +1938,11 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     if (mSensor == System::STEREO && !mpCamera2)
         mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
     else if(mSensor == System::STEREO && mpCamera2)
+    {
+        cout << "Creating Frame";
         mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr);
+        cout << "Finished frame creation" << endl;
+    }
     else if(mSensor == System::IMU_STEREO && !mpCamera2)
         mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,&mLastFrame,*mpImuCalib);
     else if(mSensor == System::IMU_STEREO && mpCamera2)
@@ -1995,16 +2014,25 @@ Sophus::SE3f Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, co
 
 Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, string filename)
 {
+    cout << "Trigger GrabImageMonocular for timestamp" << timestamp << endl;
     mImGray = im;
     if(mImGray.channels()==3)
     {
+        cout << "Triggered 3 channels" << endl;
         if(mbRGB)
+        {
+            cout << "Triggered mbRGB to gray" << endl;
             cvtColor(mImGray,mImGray,cv::COLOR_RGB2GRAY);
+        }
         else
+        {
+            cout << "Triggered nonmbRGB to gray" << endl;
             cvtColor(mImGray,mImGray,cv::COLOR_BGR2GRAY);
+        }
     }
     else if(mImGray.channels()==4)
     {
+        cout << "Triggered 4 channels additional A" << endl;
         if(mbRGB)
             cvtColor(mImGray,mImGray,cv::COLOR_RGBA2GRAY);
         else
@@ -2039,7 +2067,9 @@ Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &times
 #endif
 
     lastID = mCurrentFrame.mnId;
+    cout << "Call to Track() on current image" << endl;
     Track();
+    cout << "Finished tracking" << endl;
 
     return mCurrentFrame.GetPose();
 }
@@ -2223,6 +2253,7 @@ void Tracking::ResetFrameIMU()
 
 void Tracking::Track()
 {
+    cout << "Start of tracking for current frame with mState" << mState << "and mSensor" << mSensor << endl;
 
     if (bStepByStep)
     {
@@ -2328,12 +2359,15 @@ void Tracking::Track()
 
     if(mState==NOT_INITIALIZED)
     {
+        cout << "mState not_initialized" << endl;
         if(mSensor==System::STEREO || mSensor==System::RGBD || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD)
         {
+            cout << "Triggering stereoinitialization" << endl;
             StereoInitialization();
         }
         else
         {
+            cout << "Triggering monocularinitialization" << endl;
             MonocularInitialization();
         }
 
@@ -2352,6 +2386,7 @@ void Tracking::Track()
     }
     else
     {
+        cout << "mState not not_initialized" << endl;
         // System is initialized. Track Frame.
         bool bOK;
 
@@ -2362,12 +2397,14 @@ void Tracking::Track()
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
         if(!mbOnlyTracking)
         {
+            cout << "triggering local mapping as mbOnlyTracking set to" << mbOnlyTracking << endl;
 
             // State OK
             // Local Mapping is activated. This is the normal behaviour, unless
             // you explicitly activate the "only tracking" mode.
             if(mState==OK)
             {
+                cout << "mState OK, Local Mapping activated" << endl;
 
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
@@ -2407,6 +2444,7 @@ void Tracking::Track()
             }
             else
             {
+                cout << "mState not OK" << endl;
 
                 if (mState == RECENTLY_LOST)
                 {
@@ -2807,6 +2845,7 @@ void Tracking::StereoInitialization()
 
         // Create MapPoints and asscoiate to KeyFrame
         if(!mpCamera2){
+            cout << "no mpCamera2";
             for(int i=0; i<mCurrentFrame.N;i++)
             {
                 float z = mCurrentFrame.mvDepth[i];
@@ -2825,9 +2864,14 @@ void Tracking::StereoInitialization()
                 }
             }
         } else{
+            cout << "has mpCamera2";
+            cout << "Nleft: " <<  mCurrentFrame.Nleft;
+            cout << "Nright: " <<  mCurrentFrame.Nright;
             for(int i = 0; i < mCurrentFrame.Nleft; i++){
                 int rightIndex = mCurrentFrame.mvLeftToRightMatch[i];
+                cout << "rightindex" << rightIndex;
                 if(rightIndex != -1){
+                    cout << "rightindex not -1";
                     Eigen::Vector3f x3D = mCurrentFrame.mvStereo3Dpoints[i];
 
                     MapPoint* pNewMP = new MapPoint(x3D, pKFini, mpAtlas->GetCurrentMap());
@@ -2845,11 +2889,14 @@ void Tracking::StereoInitialization()
                     mCurrentFrame.mvpMapPoints[i]=pNewMP;
                     mCurrentFrame.mvpMapPoints[rightIndex + mCurrentFrame.Nleft]=pNewMP;
                 }
+                else {
+                    cout << "rightindex is -1";
+                }
             }
         }
 
         Verbose::PrintMess("New Map created with " + to_string(mpAtlas->MapPointsInMap()) + " points", Verbose::VERBOSITY_QUIET);
-
+        cout << "reached here";
         //cout << "Active map: " << mpAtlas->GetCurrentMap()->GetId() << endl;
 
         mpLocalMapper->InsertKeyFrame(pKFini);
@@ -2877,9 +2924,11 @@ void Tracking::StereoInitialization()
 
 void Tracking::MonocularInitialization()
 {
+    cout << "Starting monocularinitialization with mcurrentFrame timestamp" << mCurrentFrame.mTimeStamp << endl;
 
     if(!mbReadyToInitializate)
     {
+        cout << "nonInitializate state, setting MinitialFrame and mLastFrame to mCurrentFrame" << endl;
         // Set Reference Frame
         if(mCurrentFrame.mvKeys.size()>100)
         {
@@ -2919,8 +2968,9 @@ void Tracking::MonocularInitialization()
 
         // Find correspondences
         ORBmatcher matcher(0.9,true);
+        cout << "Finding correspondences with mInitialFrame timestamp" << mInitialFrame.mTimeStamp << "and mCurrentFrame timestamp" << mCurrentFrame.mTimeStamp << endl;
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
-
+        cout << "Finished monocularinitialization matching with nmatches" << nmatches << endl;
         // Check if there are enough correspondences
         if(nmatches<100)
         {

@@ -65,13 +65,18 @@ int main(int argc, char **argv)
     int tot_images = 0;
     for (seq = 0; seq<num_seq; seq++)
     {
-        cout << "Loading images for sequence " << seq << "...";
+        cout << "Loading images for sequence " << seq << "..." << endl;
 
         string pathSeq(argv[(2*seq) + 3]);
+        for (int i=0;i<argc;i++)
+            cout << i << argv[i] << endl;
+        cout << (2*seq) + 3 << "PathSeq:" << pathSeq << endl;
         string pathTimeStamps(argv[(2*seq) + 4]);
 
         string pathCam0 = pathSeq + "/mav0/cam0/data";
+        cout << "pathCam0:" << pathCam0 << endl;
         string pathCam1 = pathSeq + "/mav0/cam1/data";
+        cout << "pathCam1:" << pathCam1 << endl;
 
         LoadImages(pathCam0, pathCam1, pathTimeStamps, vstrImageLeft[seq], vstrImageRight[seq], vTimestampsCam[seq]);
         cout << "LOADED!" << endl;
@@ -88,7 +93,7 @@ int main(int argc, char **argv)
     cout.precision(17);
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::STEREO, true);
+    ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::STEREO, true);//, 0, file_name);
 
     cv::Mat imLeft, imRight;
     for (seq = 0; seq<num_seq; seq++)
@@ -100,6 +105,7 @@ int main(int argc, char **argv)
         double t_track = 0;
         int num_rect = 0;
         int proccIm = 0;
+        cout << "Going through nImages[seq]" << nImages[seq] << endl;
         for(int ni=0; ni<nImages[seq]; ni++, proccIm++)
         {
             // Read left and right images from file
@@ -121,16 +127,19 @@ int main(int argc, char **argv)
             }
 
             double tframe = vTimestampsCam[seq][ni];
+            cout << endl << "Curr time:" << tframe;
 
     #ifdef COMPILEDWITHC11
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
     #else
             std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
     #endif
+    
 
             // Pass the images to the SLAM system
-            SLAM.TrackStereo(imLeft,imRight,tframe, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][ni]);
-
+            std::cout << "ni" << ni << endl;
+            SLAM.TrackStereo(imLeft,imRight,tframe); //, vector<ORB_SLAM3::IMU::Point>(), vstrImageLeft[seq][ni]);
+    
     #ifdef COMPILEDWITHC11
             std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     #else
@@ -197,10 +206,20 @@ void LoadImages(const string &strPathLeft, const string &strPathRight, const str
     {
         string s;
         getline(fTimes,s);
+        // cout << "timestamp: " << s << endl;
         if(!s.empty())
         {
             stringstream ss;
+            
             ss << s;
+
+            // cout << "This Path Left: " << endl;
+            // const string st1 = strPathLeft + "/" + ss.str() + ".png";
+            // cout << st1 << endl;
+            // cout << "This Path Right: " << endl;
+            // const string st2 = strPathRight + "/" + ss.str() + ".png";
+            // cout << st2 << endl;
+            // cout << strPathRight + "/" + ss.str() + "png" << "end path" << endl;
             vstrImageLeft.push_back(strPathLeft + "/" + ss.str() + ".png");
             vstrImageRight.push_back(strPathRight + "/" + ss.str() + ".png");
             double t;

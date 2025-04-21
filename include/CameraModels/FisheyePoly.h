@@ -16,8 +16,8 @@
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CAMERAMODELS_KANNALABRANDT8_H
-#define CAMERAMODELS_KANNALABRANDT8_H
+#ifndef CAMERAMODELS_FISHEYEPOLY_H
+#define CAMERAMODELS_FISHEYEPOLY_H
 
 
 #include <assert.h>
@@ -114,5 +114,5 @@ namespace ORB_SLAM3 {
 }
 
 
-#endif //CAMERAMODELS_KANNALABRANDT8_H
+#endif //CAMERAMODELS_FISHEYEPOLY_H
 
