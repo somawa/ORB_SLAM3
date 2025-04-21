@@ -179,6 +179,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
 
     if (mSensor==IMU_STEREO || mSensor==IMU_MONOCULAR || mSensor==IMU_RGBD)
+        cout << "creating inertial sensor" << mSensor;
         mpAtlas->SetInertialSensor();
 
     //Create Drawers. These are used by the Viewer
@@ -188,10 +189,13 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
     cout << "Seq. Name: " << strSequence << endl;
+    cout << "Creating Tracking object instance" << endl;
     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
                              mpAtlas, mpKeyFrameDatabase, strSettingsFile, mSensor, settings_, strSequence);
 
     //Initialize the Local Mapping thread and launch
+
+    cout << "Proceeding with local mapping";
     mpLocalMapper = new LocalMapping(this, mpAtlas, mSensor==MONOCULAR || mSensor==IMU_MONOCULAR,
                                      mSensor==IMU_MONOCULAR || mSensor==IMU_STEREO || mSensor==IMU_RGBD, strSequence);
     mptLocalMapping = new thread(&ORB_SLAM3::LocalMapping::Run,mpLocalMapper);
@@ -243,6 +247,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
 Sophus::SE3f System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp, const vector<IMU::Point>& vImuMeas, string filename)
 {
+    cout << "TrackStereo filename for timestamp:" << timestamp << endl << filename << mpTracker -> mSensor;
     if(mSensor!=STEREO && mSensor!=IMU_STEREO)
     {
         cerr << "ERROR: you called TrackStereo but input sensor was not set to Stereo nor Stereo-Inertial." << endl;
@@ -312,10 +317,10 @@ Sophus::SE3f System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, 
         for(size_t i_imu = 0; i_imu < vImuMeas.size(); i_imu++)
             mpTracker->GrabImuData(vImuMeas[i_imu]);
 
-    // std::cout << "start GrabImageStereo" << std::endl;
+    std::cout << "start GrabImageStereo" << std::endl;
     Sophus::SE3f Tcw = mpTracker->GrabImageStereo(imLeftToFeed,imRightToFeed,timestamp,filename);
 
-    // std::cout << "out grabber" << std::endl;
+    std::cout << "out grabber" << std::endl;
 
     unique_lock<mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;
@@ -398,6 +403,8 @@ Sophus::SE3f System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const
 
 Sophus::SE3f System::TrackMonocular(const cv::Mat &im, const double &timestamp, const vector<IMU::Point>& vImuMeas, string filename)
 {
+    cout << "TrackMono filename for timestamp:" << timestamp << endl << filename << mpTracker -> mSensor;
+    
 
     {
         unique_lock<mutex> lock(mMutexReset);
@@ -462,7 +469,7 @@ Sophus::SE3f System::TrackMonocular(const cv::Mat &im, const double &timestamp, 
     if (mSensor == System::IMU_MONOCULAR)
         for(size_t i_imu = 0; i_imu < vImuMeas.size(); i_imu++)
             mpTracker->GrabImuData(vImuMeas[i_imu]);
-
+    cout << endl << "Calling GrabImageMonocular" << endl;
     Sophus::SE3f Tcw = mpTracker->GrabImageMonocular(imToFeed,timestamp,filename);
 
     unique_lock<mutex> lock2(mMutexState);

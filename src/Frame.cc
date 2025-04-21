@@ -30,6 +30,9 @@
 #include <include/CameraModels/Pinhole.h>
 #include <include/CameraModels/KannalaBrandt8.h>
 
+
+#include <include/CameraModels/FisheyePoly.h>
+
 namespace ORB_SLAM3
 {
 
@@ -103,6 +106,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
      mImuCalib(ImuCalib), mpImuPreintegrated(NULL), mpPrevFrame(pPrevF),mpImuPreintegratedFrame(NULL), mpReferenceKF(static_cast<KeyFrame*>(NULL)), mbIsSet(false), mbImuPreintegrated(false),
      mpCamera(pCamera) ,mpCamera2(nullptr), mbHasPose(false), mbHasVelocity(false)
 {
+    cout << "This Frame1";
     // Frame ID
     mnId=nNextId++;
 
@@ -203,6 +207,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
      mImuCalib(ImuCalib), mpImuPreintegrated(NULL), mpPrevFrame(pPrevF), mpImuPreintegratedFrame(NULL), mpReferenceKF(static_cast<KeyFrame*>(NULL)), mbIsSet(false), mbImuPreintegrated(false),
      mpCamera(pCamera),mpCamera2(nullptr), mbHasPose(false), mbHasVelocity(false)
 {
+    cout << "This Frame2";
     // Frame ID
     mnId=nNextId++;
 
@@ -292,6 +297,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
      mImuCalib(ImuCalib), mpImuPreintegrated(NULL),mpPrevFrame(pPrevF),mpImuPreintegratedFrame(NULL), mpReferenceKF(static_cast<KeyFrame*>(NULL)), mbIsSet(false), mbImuPreintegrated(false), mpCamera(pCamera),
      mpCamera2(nullptr), mbHasPose(false), mbHasVelocity(false)
 {
+    cout << "This Frame3";
     // Frame ID
     mnId=nNextId++;
 
@@ -1037,6 +1043,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
          mbHasPose(false), mbHasVelocity(false)
 
 {
+    cout << "This Frame4";
     imgLeft = imLeft.clone();
     imgRight = imRight.clone();
 
@@ -1056,8 +1063,13 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
 #endif
-    thread threadLeft(&Frame::ExtractORB,this,0,imLeft,static_cast<KannalaBrandt8*>(mpCamera)->mvLappingArea[0],static_cast<KannalaBrandt8*>(mpCamera)->mvLappingArea[1]);
-    thread threadRight(&Frame::ExtractORB,this,1,imRight,static_cast<KannalaBrandt8*>(mpCamera2)->mvLappingArea[0],static_cast<KannalaBrandt8*>(mpCamera2)->mvLappingArea[1]);
+    // thread threadLeft(&Frame::ExtractORB,this,0,imLeft,static_cast<KannalaBrandt8*>(mpCamera)->mvLappingArea[0],static_cast<KannalaBrandt8*>(mpCamera)->mvLappingArea[1]);
+    // thread threadRight(&Frame::ExtractORB,this,1,imRight,static_cast<KannalaBrandt8*>(mpCamera2)->mvLappingArea[0],static_cast<KannalaBrandt8*>(mpCamera2)->mvLappingArea[1]);
+    cout << "created thread";
+    thread threadLeft(&Frame::ExtractORB,this,0,imLeft,static_cast<FisheyePoly*>(mpCamera)->mvLappingArea[0],static_cast<FisheyePoly*>(mpCamera)->mvLappingArea[1]);
+    thread threadRight(&Frame::ExtractORB,this,1,imRight,static_cast<FisheyePoly*>(mpCamera2)->mvLappingArea[0],static_cast<FisheyePoly*>(mpCamera2)->mvLappingArea[1]);
+    
+    
     threadLeft.join();
     threadRight.join();
 #ifdef REGISTER_TIMES
@@ -1081,6 +1093,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
         mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/(mnMaxX-mnMinX);
         mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/(mnMaxY-mnMinY);
 
+        //from camera settings file passed from Tracking.cc newParameterLoader()
         fx = K.at<float>(0,0);
         fy = K.at<float>(1,1);
         cx = K.at<float>(0,2);
@@ -1153,7 +1166,10 @@ void Frame::ComputeStereoFishEyeMatches() {
             Eigen::Vector3f p3D;
             descMatches++;
             float sigma1 = mvLevelSigma2[mvKeys[(*it)[0].queryIdx + monoLeft].octave], sigma2 = mvLevelSigma2[mvKeysRight[(*it)[0].trainIdx + monoRight].octave];
-            float depth = static_cast<KannalaBrandt8*>(mpCamera)->TriangulateMatches(mpCamera2,mvKeys[(*it)[0].queryIdx + monoLeft],mvKeysRight[(*it)[0].trainIdx + monoRight],mRlr,mtlr,sigma1,sigma2,p3D);
+            // float depth = static_cast<KannalaBrandt8*>(mpCamera)->TriangulateMatches(mpCamera2,mvKeys[(*it)[0].queryIdx + monoLeft],mvKeysRight[(*it)[0].trainIdx + monoRight],mRlr,mtlr,sigma1,sigma2,p3D);
+            cout << "Checking lowe's ratio";
+            float depth = static_cast<FisheyePoly*>(mpCamera)->TriangulateMatches(mpCamera2,mvKeys[(*it)[0].queryIdx + monoLeft],mvKeysRight[(*it)[0].trainIdx + monoRight],mRlr,mtlr,sigma1,sigma2,p3D);
+            
             if(depth > 0.0001f){
                 mvLeftToRightMatch[(*it)[0].queryIdx + monoLeft] = (*it)[0].trainIdx + monoRight;
                 mvRightToLeftMatch[(*it)[0].trainIdx + monoRight] = (*it)[0].queryIdx + monoLeft;

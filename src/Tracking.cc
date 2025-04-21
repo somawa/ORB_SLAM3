@@ -25,9 +25,14 @@
 #include "G2oTypes.h"
 #include "Optimizer.h"
 #include "Pinhole.h"
+
+//Reference to Kannala camera model file, 
+//corresponding FisheyePoly model file is included as well
 #include "KannalaBrandt8.h"
 #include "MLPnPsolver.h"
 #include "GeometricTools.h"
+
+#include "FisheyePoly.h"
 
 #include <iostream>
 
@@ -48,8 +53,10 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpAtlas(pAtlas), mnLastRelocFrameId(0), time_recently_lost(5.0),
     mnInitialFrameId(0), mbCreatedMap(false), mnFirstFrameId(0), mpCamera2(nullptr), mpLastKeyFrame(static_cast<KeyFrame*>(NULL))
 {
+    cout << "Tracking object for sensor type:" << sensor << endl;
     // Load camera parameters from settings file
     if(settings){
+        cout << "Getting fsettings variable created in System, loading kmatrix with camera intrinsics" << endl;
         newParameterLoader(settings);
     }
     else{
@@ -103,11 +110,15 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     for(GeometricCamera* pCam : vpCams)
     {
         std::cout << "Camera " << pCam->GetId();
+
+        //GetType() returns mnType which is set inside the header files for the camera models
+
         if(pCam->GetType() == GeometricCamera::CAM_PINHOLE)
         {
             std::cout << " is pinhole" << std::endl;
         }
         else if(pCam->GetType() == GeometricCamera::CAM_FISHEYE)
+    
         {
             std::cout << " is fisheye" << std::endl;
         }
@@ -115,7 +126,9 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
         {
             std::cout << " is unknown" << std::endl;
         }
+        cout << "done with camera" << pCam -> GetType();
     }
+    std::cout << "continuing";
 
 #ifdef REGISTER_TIMES
     vdRectStereo_ms.clear();
@@ -533,8 +546,10 @@ Tracking::~Tracking()
 }
 
 void Tracking::newParameterLoader(Settings *settings) {
+    cout << "Loading parameters in newParameterLoader" << endl;
     mpCamera = settings->camera1();
     mpCamera = mpAtlas->AddCamera(mpCamera);
+    cout << "Added camera1" << mpCamera -> getParameter(0);
 
     if(settings->needToUndistort()){
         mDistCoef = settings->camera1DistortionCoef();
@@ -558,15 +573,53 @@ void Tracking::newParameterLoader(Settings *settings) {
     mK_(0,2) = mpCamera->getParameter(2);
     mK_(1,2) = mpCamera->getParameter(3);
 
-    if((mSensor==System::STEREO || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD) &&
-        settings->cameraType() == Settings::KannalaBrandt){
+
+
+
+
+
+
+    //Added cameraType() Settings::Fisheye since it is a valid camera model to satisfy
+    //second camera for stereo, in the same logic that cameraType() Settings::KannalaBrandt is used here as well
+    //Settings::Fisheye corresponds to the value assigned to the Fisheye variable in enum CameraType in settings.h
+    // if((mSensor==System::STEREO || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD) &&
+    //     (settings->cameraType() == Settings::KannalaBrandt || settings->cameraType() == Settings::Fisheye)){
+        
+    if((mSensor==System::STEREO || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD) ){
+        
+        cout << "Sensor is " << mSensor << "so adding camera2 as well" << endl;
+
+        //Check if need to add FisheyePoly here and why pinhole cameraType() is not used here
+        
+        //camera2() returns calibration2_ which is the calibration2_ variable of settings.cc
+        //calibration2_ is the camera model instance in settings.cc created from the constructor in the
+        //corresponding camera model header file (e.g. FisheyePoly.h)
+        cout << "Adding camera 2" << endl;
         mpCamera2 = settings->camera2();
         mpCamera2 = mpAtlas->AddCamera(mpCamera2);
 
+        
+        //Tlr() calls the Tlr() defined in settings.h which returns Tlr_ variable
+        //Tlr_ is defined in settings.cc to be Converter::toSophus(cvTlr);
         mTlr = settings->Tlr();
 
         mpFrameDrawer->both = true;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
     if(mSensor==System::STEREO || mSensor==System::RGBD || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD ){
         mbf = settings->bf();
@@ -584,6 +637,7 @@ void Tracking::newParameterLoader(Settings *settings) {
     mMinFrames = 0;
     mMaxFrames = settings->fps();
     mbRGB = settings->rgb();
+    cout << "curr mbRGB setting is" << mbRGB;
 
     //ORB parameters
     int nFeatures = settings->nFeatures();
@@ -616,8 +670,12 @@ void Tracking::newParameterLoader(Settings *settings) {
     mpImuPreintegratedFromLastKF = new IMU::Preintegrated(IMU::Bias(),*mpImuCalib);
 }
 
+
+//fSettings is a node object that can retrieve values from the camera settings file, based on the field names
+
 bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
 {
+    cout << "Defaulting to ParseCamParamFile with newly created fSettings object to load camera settings" << endl;
     mDistCoef = cv::Mat::zeros(4,1,CV_32F);
     cout << endl << "Camera Parameters: " << endl;
     bool b_miss_params = false;
@@ -916,6 +974,7 @@ bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
             mK_(0,2) = cx;
             mK_(1,2) = cy;
         }
+        
 
         if(mSensor==System::STEREO || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD){
             // Right camera
@@ -1124,6 +1183,390 @@ bool Tracking::ParseCamParamFile(cv::FileStorage &fSettings)
         }
 
     }
+
+
+
+
+
+
+
+
+
+
+
+
+    //sCameraName corresponds to Camera.type value inside camera model settings .yaml file
+    else if(sCameraName == "Fisheye")
+    {
+        float fx, fy, cx, cy;
+        float k1; //, k2, k3, k4;
+        mImageScale = 1.f;
+
+        // Camera calibration parameters
+        cv::FileNode node = fSettings["Camera.fx"];
+        if(!node.empty() && node.isReal())
+        {
+            fx = node.real();
+            cout << "fx is here" << fx << endl;
+        }
+        else
+        {
+            std::cerr << "*Camera.fx parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+        node = fSettings["Camera.fy"];
+        if(!node.empty() && node.isReal())
+        {
+            fy = node.real();
+        }
+        else
+        {
+            std::cerr << "*Camera.fy parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+
+        node = fSettings["Camera.cx"];
+        if(!node.empty() && node.isReal())
+        {
+            cx = node.real();
+        }
+        else
+        {
+            std::cerr << "*Camera.cx parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+
+        node = fSettings["Camera.cy"];
+        if(!node.empty() && node.isReal())
+        {
+            cy = node.real();
+        }
+        else
+        {
+            std::cerr << "*Camera.cy parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+
+        // Distortion parameters
+        node = fSettings["Camera.k1"];
+        if(!node.empty() && node.isReal())
+        {
+            k1 = node.real();
+        }
+        else
+        {
+            std::cerr << "*Camera.k1 parameter doesn't exist or is not a real number*" << std::endl;
+            b_miss_params = true;
+        }
+        // node = fSettings["Camera.k2"];
+        // if(!node.empty() && node.isReal())
+        // {
+        //     k2 = node.real();
+        // }
+        // else
+        // {
+        //     std::cerr << "*Camera.k2 parameter doesn't exist or is not a real number*" << std::endl;
+        //     b_miss_params = true;
+        // }
+
+        // node = fSettings["Camera.k3"];
+        // if(!node.empty() && node.isReal())
+        // {
+        //     k3 = node.real();
+        // }
+        // else
+        // {
+        //     std::cerr << "*Camera.k3 parameter doesn't exist or is not a real number*" << std::endl;
+        //     b_miss_params = true;
+        // }
+
+        // node = fSettings["Camera.k4"];
+        // if(!node.empty() && node.isReal())
+        // {
+        //     k4 = node.real();
+        // }
+        // else
+        // {
+        //     std::cerr << "*Camera.k4 parameter doesn't exist or is not a real number*" << std::endl;
+        //     b_miss_params = true;
+        // }
+
+        node = fSettings["Camera.imageScale"];
+        if(!node.empty() && node.isReal())
+        {
+            mImageScale = node.real();
+        }
+
+        if(!b_miss_params)
+        {
+            if(mImageScale != 1.f)
+            {
+                // K matrix parameters must be scaled.
+                fx = fx * mImageScale;
+                fy = fy * mImageScale;
+                cx = cx * mImageScale;
+                cy = cy * mImageScale;
+            }
+
+            //vCamCalib corresponds to _vParameters in FisheyePoly.h which is referenced by FisheyePoly.cpp as mvParameters
+            
+            vector<float> vCamCalib{fx,fy,cx,cy,k1}; //,k2,k3,k4};
+
+            //FisheyePoly(vCamCalib) will invoke FisheyePoly(const std::vector<float> _vParameters) constructor in FisheyePoly.h
+            
+            mpCamera = new FisheyePoly(vCamCalib);
+            mpCamera = mpAtlas->AddCamera(mpCamera);
+            std::cout << "- Camera: Fisheye" << std::endl;
+            std::cout << "- Image scale: " << mImageScale << std::endl;
+            std::cout << "- fx: " << fx << std::endl;
+            std::cout << "- fy: " << fy << std::endl;
+            std::cout << "- cx: " << cx << std::endl;
+            std::cout << "- cy: " << cy << std::endl;
+            std::cout << "- k1: " << k1 << std::endl;
+            // std::cout << "- k2: " << k2 << std::endl;
+            // std::cout << "- k3: " << k3 << std::endl;
+            // std::cout << "- k4: " << k4 << std::endl;
+
+            mK = cv::Mat::eye(3,3,CV_32F);
+            mK.at<float>(0,0) = fx;
+            mK.at<float>(1,1) = fy;
+            mK.at<float>(0,2) = cx;
+            mK.at<float>(1,2) = cy;
+
+            mK_.setIdentity();
+            mK_(0,0) = fx;
+            mK_(1,1) = fy;
+            mK_(0,2) = cx;
+            mK_(1,2) = cy;
+        }
+        
+
+        if(mSensor==System::STEREO || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD){
+            // Right camera
+            // Camera calibration parameters
+            cv::FileNode node = fSettings["Camera2.fx"];
+            if(!node.empty() && node.isReal())
+            {
+                fx = node.real();
+            }
+            else
+            {
+                std::cerr << "*Camera2.fx parameter doesn't exist or is not a real number*" << std::endl;
+                b_miss_params = true;
+            }
+            node = fSettings["Camera2.fy"];
+            if(!node.empty() && node.isReal())
+            {
+                fy = node.real();
+            }
+            else
+            {
+                std::cerr << "*Camera2.fy parameter doesn't exist or is not a real number*" << std::endl;
+                b_miss_params = true;
+            }
+
+            node = fSettings["Camera2.cx"];
+            if(!node.empty() && node.isReal())
+            {
+                cx = node.real();
+            }
+            else
+            {
+                std::cerr << "*Camera2.cx parameter doesn't exist or is not a real number*" << std::endl;
+                b_miss_params = true;
+            }
+
+            node = fSettings["Camera2.cy"];
+            if(!node.empty() && node.isReal())
+            {
+                cy = node.real();
+            }
+            else
+            {
+                std::cerr << "*Camera2.cy parameter doesn't exist or is not a real number*" << std::endl;
+                b_miss_params = true;
+            }
+
+            // Distortion parameters
+            node = fSettings["Camera2.k1"];
+            if(!node.empty() && node.isReal())
+            {
+                k1 = node.real();
+            }
+            else
+            {
+                std::cerr << "*Camera2.k1 parameter doesn't exist or is not a real number*" << std::endl;
+                b_miss_params = true;
+            }
+            // node = fSettings["Camera2.k2"];
+            // if(!node.empty() && node.isReal())
+            // {
+            //     k2 = node.real();
+            // }
+            // else
+            // {
+            //     std::cerr << "*Camera2.k2 parameter doesn't exist or is not a real number*" << std::endl;
+            //     b_miss_params = true;
+            // }
+
+            // node = fSettings["Camera2.k3"];
+            // if(!node.empty() && node.isReal())
+            // {
+            //     k3 = node.real();
+            // }
+            // else
+            // {
+            //     std::cerr << "*Camera2.k3 parameter doesn't exist or is not a real number*" << std::endl;
+            //     b_miss_params = true;
+            // }
+
+            // node = fSettings["Camera2.k4"];
+            // if(!node.empty() && node.isReal())
+            // {
+            //     k4 = node.real();
+            // }
+            // else
+            // {
+            //     std::cerr << "*Camera2.k4 parameter doesn't exist or is not a real number*" << std::endl;
+            //     b_miss_params = true;
+            // }
+
+
+            int leftLappingBegin = -1;
+            int leftLappingEnd = -1;
+
+            int rightLappingBegin = -1;
+            int rightLappingEnd = -1;
+
+            node = fSettings["Camera.lappingBegin"];
+            if(!node.empty() && node.isInt())
+            {
+                leftLappingBegin = node.operator int();
+            }
+            else
+            {
+                std::cout << "WARNING: Camera.lappingBegin not correctly defined" << std::endl;
+            }
+            node = fSettings["Camera.lappingEnd"];
+            if(!node.empty() && node.isInt())
+            {
+                leftLappingEnd = node.operator int();
+            }
+            else
+            {
+                std::cout << "WARNING: Camera.lappingEnd not correctly defined" << std::endl;
+            }
+            node = fSettings["Camera2.lappingBegin"];
+            if(!node.empty() && node.isInt())
+            {
+                rightLappingBegin = node.operator int();
+            }
+            else
+            {
+                std::cout << "WARNING: Camera2.lappingBegin not correctly defined" << std::endl;
+            }
+            node = fSettings["Camera2.lappingEnd"];
+            if(!node.empty() && node.isInt())
+            {
+                rightLappingEnd = node.operator int();
+            }
+            else
+            {
+                std::cout << "WARNING: Camera2.lappingEnd not correctly defined" << std::endl;
+            }
+
+            node = fSettings["Tlr"];
+            cv::Mat cvTlr;
+            if(!node.empty())
+            {
+                cvTlr = node.mat();
+                if(cvTlr.rows != 3 || cvTlr.cols != 4)
+                {
+                    std::cerr << "*Tlr matrix have to be a 3x4 transformation matrix*" << std::endl;
+                    b_miss_params = true;
+                }
+            }
+            else
+            {
+                std::cerr << "*Tlr matrix doesn't exist*" << std::endl;
+                b_miss_params = true;
+            }
+
+            if(!b_miss_params)
+            {
+                if(mImageScale != 1.f)
+                {
+                    // K matrix parameters must be scaled.
+                    fx = fx * mImageScale;
+                    fy = fy * mImageScale;
+                    cx = cx * mImageScale;
+                    cy = cy * mImageScale;
+
+                    leftLappingBegin = leftLappingBegin * mImageScale;
+                    leftLappingEnd = leftLappingEnd * mImageScale;
+                    rightLappingBegin = rightLappingBegin * mImageScale;
+                    rightLappingEnd = rightLappingEnd * mImageScale;
+                }
+
+                static_cast<FisheyePoly*>(mpCamera)->mvLappingArea[0] = leftLappingBegin;
+                static_cast<FisheyePoly*>(mpCamera)->mvLappingArea[1] = leftLappingEnd;
+
+                mpFrameDrawer->both = true;
+
+                //vCamCalib2 corresponds to _vParameters in FisheyePoly.h which is referenced by FisheyePoly.cpp as mvParameters
+                
+                vector<float> vCamCalib2{fx,fy,cx,cy,k1}; //,k2,k3,k4};
+                mpCamera2 = new FisheyePoly(vCamCalib2);
+                mpCamera2 = mpAtlas->AddCamera(mpCamera2);
+
+                mTlr = Converter::toSophus(cvTlr);
+
+                static_cast<FisheyePoly*>(mpCamera2)->mvLappingArea[0] = rightLappingBegin;
+                static_cast<FisheyePoly*>(mpCamera2)->mvLappingArea[1] = rightLappingEnd;
+
+                std::cout << "- Camera1 Lapping: " << leftLappingBegin << ", " << leftLappingEnd << std::endl;
+
+                std::cout << std::endl << "Camera2 Parameters:" << std::endl;
+                std::cout << "- Camera: Fisheye" << std::endl;
+                std::cout << "- Image scale: " << mImageScale << std::endl;
+                std::cout << "- fx: " << fx << std::endl;
+                std::cout << "- fy: " << fy << std::endl;
+                std::cout << "- cx: " << cx << std::endl;
+                std::cout << "- cy: " << cy << std::endl;
+                std::cout << "- k1: " << k1 << std::endl;
+                // std::cout << "- k2: " << k2 << std::endl;
+                // std::cout << "- k3: " << k3 << std::endl;
+                // std::cout << "- k4: " << k4 << std::endl;
+
+                std::cout << "- mTlr: \n" << cvTlr << std::endl;
+
+                std::cout << "- Camera2 Lapping: " << rightLappingBegin << ", " << rightLappingEnd << std::endl;
+            }
+        }
+
+        if(b_miss_params)
+        {
+            return false;
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     else
     {
         std::cerr << "*Not Supported Camera Sensor*" << std::endl;
@@ -1461,14 +1904,16 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
 
     if(mImGray.channels()==3)
     {
-        //cout << "Image with 3 channels" << endl;
+        cout << "Image with 3 channels" << endl;
         if(mbRGB)
         {
+            cout << "Triggered mbRGB to gray" << endl;
             cvtColor(mImGray,mImGray,cv::COLOR_RGB2GRAY);
             cvtColor(imGrayRight,imGrayRight,cv::COLOR_RGB2GRAY);
         }
         else
         {
+            cout << "Triggered nonmbRGB to gray" << endl;
             cvtColor(mImGray,mImGray,cv::COLOR_BGR2GRAY);
             cvtColor(imGrayRight,imGrayRight,cv::COLOR_BGR2GRAY);
         }
@@ -1493,7 +1938,11 @@ Sophus::SE3f Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat 
     if (mSensor == System::STEREO && !mpCamera2)
         mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera);
     else if(mSensor == System::STEREO && mpCamera2)
+    {
+        cout << "Creating Frame";
         mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,mpCamera2,mTlr);
+        cout << "Finished frame creation" << endl;
+    }
     else if(mSensor == System::IMU_STEREO && !mpCamera2)
         mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth,mpCamera,&mLastFrame,*mpImuCalib);
     else if(mSensor == System::IMU_STEREO && mpCamera2)
@@ -1565,16 +2014,25 @@ Sophus::SE3f Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, co
 
 Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp, string filename)
 {
+    cout << "Trigger GrabImageMonocular for timestamp" << timestamp << endl;
     mImGray = im;
     if(mImGray.channels()==3)
     {
+        cout << "Triggered 3 channels" << endl;
         if(mbRGB)
+        {
+            cout << "Triggered mbRGB to gray" << endl;
             cvtColor(mImGray,mImGray,cv::COLOR_RGB2GRAY);
+        }
         else
+        {
+            cout << "Triggered nonmbRGB to gray" << endl;
             cvtColor(mImGray,mImGray,cv::COLOR_BGR2GRAY);
+        }
     }
     else if(mImGray.channels()==4)
     {
+        cout << "Triggered 4 channels additional A" << endl;
         if(mbRGB)
             cvtColor(mImGray,mImGray,cv::COLOR_RGBA2GRAY);
         else
@@ -1609,7 +2067,9 @@ Sophus::SE3f Tracking::GrabImageMonocular(const cv::Mat &im, const double &times
 #endif
 
     lastID = mCurrentFrame.mnId;
+    cout << "Call to Track() on current image" << endl;
     Track();
+    cout << "Finished tracking" << endl;
 
     return mCurrentFrame.GetPose();
 }
@@ -1793,6 +2253,7 @@ void Tracking::ResetFrameIMU()
 
 void Tracking::Track()
 {
+    cout << "Start of tracking for current frame with mState" << mState << "and mSensor" << mSensor << endl;
 
     if (bStepByStep)
     {
@@ -1898,12 +2359,15 @@ void Tracking::Track()
 
     if(mState==NOT_INITIALIZED)
     {
+        cout << "mState not_initialized" << endl;
         if(mSensor==System::STEREO || mSensor==System::RGBD || mSensor==System::IMU_STEREO || mSensor==System::IMU_RGBD)
         {
+            cout << "Triggering stereoinitialization" << endl;
             StereoInitialization();
         }
         else
         {
+            cout << "Triggering monocularinitialization" << endl;
             MonocularInitialization();
         }
 
@@ -1922,6 +2386,7 @@ void Tracking::Track()
     }
     else
     {
+        cout << "mState not not_initialized" << endl;
         // System is initialized. Track Frame.
         bool bOK;
 
@@ -1932,12 +2397,14 @@ void Tracking::Track()
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
         if(!mbOnlyTracking)
         {
+            cout << "triggering local mapping as mbOnlyTracking set to" << mbOnlyTracking << endl;
 
             // State OK
             // Local Mapping is activated. This is the normal behaviour, unless
             // you explicitly activate the "only tracking" mode.
             if(mState==OK)
             {
+                cout << "mState OK, Local Mapping activated" << endl;
 
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
@@ -1977,6 +2444,7 @@ void Tracking::Track()
             }
             else
             {
+                cout << "mState not OK" << endl;
 
                 if (mState == RECENTLY_LOST)
                 {
@@ -2377,6 +2845,7 @@ void Tracking::StereoInitialization()
 
         // Create MapPoints and asscoiate to KeyFrame
         if(!mpCamera2){
+            cout << "no mpCamera2";
             for(int i=0; i<mCurrentFrame.N;i++)
             {
                 float z = mCurrentFrame.mvDepth[i];
@@ -2395,9 +2864,14 @@ void Tracking::StereoInitialization()
                 }
             }
         } else{
+            cout << "has mpCamera2";
+            cout << "Nleft: " <<  mCurrentFrame.Nleft;
+            cout << "Nright: " <<  mCurrentFrame.Nright;
             for(int i = 0; i < mCurrentFrame.Nleft; i++){
                 int rightIndex = mCurrentFrame.mvLeftToRightMatch[i];
+                cout << "rightindex" << rightIndex;
                 if(rightIndex != -1){
+                    cout << "rightindex not -1";
                     Eigen::Vector3f x3D = mCurrentFrame.mvStereo3Dpoints[i];
 
                     MapPoint* pNewMP = new MapPoint(x3D, pKFini, mpAtlas->GetCurrentMap());
@@ -2415,11 +2889,14 @@ void Tracking::StereoInitialization()
                     mCurrentFrame.mvpMapPoints[i]=pNewMP;
                     mCurrentFrame.mvpMapPoints[rightIndex + mCurrentFrame.Nleft]=pNewMP;
                 }
+                else {
+                    cout << "rightindex is -1";
+                }
             }
         }
 
         Verbose::PrintMess("New Map created with " + to_string(mpAtlas->MapPointsInMap()) + " points", Verbose::VERBOSITY_QUIET);
-
+        cout << "reached here";
         //cout << "Active map: " << mpAtlas->GetCurrentMap()->GetId() << endl;
 
         mpLocalMapper->InsertKeyFrame(pKFini);
@@ -2447,9 +2924,11 @@ void Tracking::StereoInitialization()
 
 void Tracking::MonocularInitialization()
 {
+    cout << "Starting monocularinitialization with mcurrentFrame timestamp" << mCurrentFrame.mTimeStamp << endl;
 
     if(!mbReadyToInitializate)
     {
+        cout << "nonInitializate state, setting MinitialFrame and mLastFrame to mCurrentFrame" << endl;
         // Set Reference Frame
         if(mCurrentFrame.mvKeys.size()>100)
         {
@@ -2489,8 +2968,9 @@ void Tracking::MonocularInitialization()
 
         // Find correspondences
         ORBmatcher matcher(0.9,true);
+        cout << "Finding correspondences with mInitialFrame timestamp" << mInitialFrame.mTimeStamp << "and mCurrentFrame timestamp" << mCurrentFrame.mTimeStamp << endl;
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
-
+        cout << "Finished monocularinitialization matching with nmatches" << nmatches << endl;
         // Check if there are enough correspondences
         if(nmatches<100)
         {

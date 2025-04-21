@@ -64,10 +64,25 @@ def read_file_list(filename,remove_bounds):
     file = open(filename)
     data = file.read()
     lines = data.replace(","," ").replace("\t"," ").split("\n")
+    
+    #['entry1', 'entry2'] where each entry is 'timestamp px py ...'
+    print(f"\n\n\n\n\nFirst few lines: {lines[:10]}")
     if remove_bounds:
         lines = lines[100:-100]
-    list = [[v.strip() for v in line.split(" ") if v.strip()!=""] for line in lines if len(line)>0 and line[0]!="#"]
-    list = [(float(l[0]),l[1:]) for l in list if len(l)>1]
+    # list = [[v.strip() for v in line.split(" ") if v.strip()!=""] for line in lines if len(line)>0 and line[0]!="#"]
+    new_lst = []
+    
+    for line in lines:
+        if len(line)>0 and line[0]!="#":
+            new_sublst = []
+            for v in line.split(" "):
+                if v.strip()!="":
+                    new_sublst.append(v.strip())
+            new_lst.append(new_sublst)
+            
+    # list = [(float(l[0]),l[1:]) for l in list if len(l)>1]
+    list = [(float(l[0]),l[1:]) for l in new_lst if len(l)>1]
+    
     return dict(list)
 
 def associate(first_list, second_list,offset,max_difference):
@@ -85,8 +100,8 @@ def associate(first_list, second_list,offset,max_difference):
     matches -- list of matched tuples ((stamp1,data1),(stamp2,data2))
     
     """
-    first_keys = first_list.keys()
-    second_keys = second_list.keys()
+    first_keys = list(first_list.keys())
+    second_keys = list(second_list.keys())
     potential_matches = [(abs(a - (b + offset)), a, b) 
                          for a in first_keys 
                          for b in second_keys 
@@ -100,7 +115,7 @@ def associate(first_list, second_list,offset,max_difference):
             matches.append((a, b))
     
     matches.sort()
-    return matches
+    return matches #[(a_timematch1, b_timematch1), (a_timematch2, b_timematch2),z]
 
 if __name__ == '__main__':
     

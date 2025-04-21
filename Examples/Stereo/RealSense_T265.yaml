@@ -45,15 +45,15 @@ Stereo.T_c1_c2: !!opencv-matrix
 Camera1.overlappingBegin: 0
 Camera1.overlappingEnd: 847
 
-Camera2.lappingBegin: 0
-Camera2.lappingEnd: 847
+Camera2.overlappingBegin: 0
+Camera2.overlappingEnd: 847
 
 # Camera resolution
 Camera.width: 848
 Camera.height: 800
 
 # Camera frames per second 
-Camera.fps: 30.
+Camera.fps: 30
 
 # Color order of the images (0: BGR, 1: RGB. It is ignored if images are grayscale)
 Camera.RGB: 1

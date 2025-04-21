@@ -26,6 +26,8 @@
 #include "Pinhole.h"
 #include "KannalaBrandt8.h"
 
+#include "FisheyePoly.h"
+
 #include <set>
 #include <mutex>
 #include <boost/serialization/vector.hpp>
@@ -43,6 +45,9 @@ class Frame;
 class KannalaBrandt8;
 class Pinhole;
 
+
+class FisheyePoly;
+
 //BOOST_CLASS_EXPORT_GUID(Pinhole, "Pinhole")
 //BOOST_CLASS_EXPORT_GUID(KannalaBrandt8, "KannalaBrandt8")
 
@@ -55,6 +60,17 @@ class Atlas
     {
         ar.template register_type<Pinhole>();
         ar.template register_type<KannalaBrandt8>();
+
+
+
+
+
+
+        ar.template register_type<FisheyePoly>();
+
+
+
+        
 
         // Save/load a set structure, the set structure is broken in libboost 1.58 for ubuntu 16.04, a vector is serializated
         //ar & mspMaps;

@@ -63,6 +63,8 @@ int main(int argc, char **argv)
     int tot_images = 0;
     for (seq = 0; seq<num_seq; seq++)
     {
+        for (int i=0;i<argc;i++)
+            cout << i << argv[i] << endl;
         cout << "Loading images for sequence " << seq << "...";
         LoadImages(string(argv[(3*seq)+3]), string(argv[(2*seq)+4]), string(argv[(2*seq)+5]), vstrImageLeftFilenames[seq], vstrImageRightFilenames[seq], vTimestampsCam[seq]);
         cout << "Total images: " << vstrImageLeftFilenames[seq].size() << endl;
@@ -143,6 +145,7 @@ int main(int argc, char **argv)
             clahe->apply(imRight,imRight);
 
             double tframe = vTimestampsCam[seq][ni];
+            cout << "Curr time:" << tframe;
 
             if(imLeft.empty() || imRight.empty())
             {

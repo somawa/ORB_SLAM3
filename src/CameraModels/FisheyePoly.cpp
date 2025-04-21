@@ -15,76 +15,80 @@
 * You should have received a copy of the GNU General Public License along with ORB-SLAM3.
 * If not, see <http://www.gnu.org/licenses/>.
 */
-
-#include "KannalaBrandt8.h"
+#include "FisheyePoly.h"
 
 #include <boost/serialization/export.hpp>
 
-//BOOST_CLASS_EXPORT_IMPLEMENT(ORB_SLAM3::KannalaBrandt8)
+//BOOST_CLASS_EXPORT_IMPLEMENT(ORB_SLAM3::FisheyePoly)
 
 namespace ORB_SLAM3 {
-//BOOST_CLASS_EXPORT_GUID(KannalaBrandt8, "KannalaBrandt8")
+//BOOST_CLASS_EXPORT_GUID(FisheyePoly, "FisheyePoly")
 
-    cv::Point2f KannalaBrandt8::project(const cv::Point3f &p3D) {
+    cv::Point2f FisheyePoly::project(const cv::Point3f &p3D) {
         // std::cout << "Projecting p2f" << std::endl;
-        const float x2_plus_y2 = p3D.x * p3D.x + p3D.y * p3D.y;
-        const float theta = atan2f(sqrtf(x2_plus_y2), p3D.z);
-        const float psi = atan2f(p3D.y, p3D.x);
+        //p3D is ray input R=[rx, ry, rz]
 
-        const float theta2 = theta * theta;
-        const float theta3 = theta * theta2;
-        const float theta5 = theta3 * theta2;
-        const float theta7 = theta5 * theta2;
-        const float theta9 = theta7 * theta2;
-        const float r = theta + mvParameters[4] * theta3 + mvParameters[5] * theta5
-                        + mvParameters[6] * theta7 + mvParameters[7] * theta9;
+        //l2_norm = |R|
+        const float l2_norm = sqrtf(p3D.x * p3D.x + p3D.y * p3D.y + p3D.z * p3D.z);
 
-        return cv::Point2f(mvParameters[0] * r * cos(psi) + mvParameters[2],
-                           mvParameters[1] * r * sin(psi) + mvParameters[3]);
+        //theta = cos_inv(rz/|R|) 
+        const float theta = acos(p3D.z / l2_norm);
+
+        //r = k1 * theta
+        float r = mvParameters[4] * theta;
+
+        float R_p = sqrt(p3D.x * p3D.x + p3D.y * p3D.y);
+
+        return cv::Point2f(mvParameters[2] + r * p3D.x / R_p,
+                           mvParameters[3] + r * p3D.y / R_p);
+        
 
     }
 
-    Eigen::Vector2d KannalaBrandt8::project(const Eigen::Vector3d &v3D) {
+    Eigen::Vector2d FisheyePoly::project(const Eigen::Vector3d &v3D) {
         // std::cout << "Projecting v2d" << std::endl;
-        const double x2_plus_y2 = v3D[0] * v3D[0] + v3D[1] * v3D[1];
-        const double theta = atan2f(sqrtf(x2_plus_y2), v3D[2]);
-        const double psi = atan2f(v3D[1], v3D[0]);
 
-        const double theta2 = theta * theta;
-        const double theta3 = theta * theta2;
-        const double theta5 = theta3 * theta2;
-        const double theta7 = theta5 * theta2;
-        const double theta9 = theta7 * theta2;
-        const double r = theta + mvParameters[4] * theta3 + mvParameters[5] * theta5
-                        + mvParameters[6] * theta7 + mvParameters[7] * theta9;
+        //l2_norm = |R|
+        const double l2_norm = sqrt(v3D[0] * v3D[0] + v3D[1] * v3D[1] + v3D[2] * v3D[2]);
+
+        //theta = cos_inv(rz/|R|) 
+        const double theta = acos(v3D[2] / l2_norm);
+
+        //r = k1 * theta
+        double r = mvParameters[4] * theta;
+
+        double R_p = sqrt(v3D[0] * v3D[0] + v3D[1] * v3D[1]);
 
         Eigen::Vector2d res;
-        res[0] = mvParameters[0] * r * cos(psi) + mvParameters[2];
-        res[1] = mvParameters[1] * r * sin(psi) + mvParameters[3];
+        res[0] = mvParameters[2] + r * v3D[0] / R_p;
+        res[1] = mvParameters[3] + r * v3D[1] / R_p;
 
         return res;
 
     }
 
-    Eigen::Vector2f KannalaBrandt8::project(const Eigen::Vector3f &v3D) {
+    Eigen::Vector2f FisheyePoly::project(const Eigen::Vector3f &v3D) {
         // std::cout << "Projecting v2f" << std::endl;
-        const float x2_plus_y2 = v3D[0] * v3D[0] + v3D[1] * v3D[1];
-        const float theta = atan2f(sqrtf(x2_plus_y2), v3D[2]);
-        const float psi = atan2f(v3D[1], v3D[0]);
 
-        const float theta2 = theta * theta;
-        const float theta3 = theta * theta2;
-        const float theta5 = theta3 * theta2;
-        const float theta7 = theta5 * theta2;
-        const float theta9 = theta7 * theta2;
-        const float r = theta + mvParameters[4] * theta3 + mvParameters[5] * theta5
-                         + mvParameters[6] * theta7 + mvParameters[7] * theta9;
+
+
+        //l2_norm = |R|
+        const double l2_norm = sqrt(v3D[0] * v3D[0] + v3D[1] * v3D[1] + v3D[2] * v3D[2]);
+
+        //theta = cos_inv(rz/|R|) 
+        const double theta = acos(v3D[2] / l2_norm);
+
+        //r = k1 * theta
+        float r = mvParameters[4] * theta;
+
+        float R_p = sqrt(v3D[0] * v3D[0] + v3D[1] * v3D[1]);
 
         Eigen::Vector2f res;
-        res[0] = mvParameters[0] * r * cos(psi) + mvParameters[2];
-        res[1] = mvParameters[1] * r * sin(psi) + mvParameters[3];
+        res[0] = mvParameters[2] + r * v3D[0] / R_p;
+        res[1] = mvParameters[3] + r * v3D[1] / R_p;
 
         return res;
+
 
         /*cv::Point2f cvres = this->project(cv::Point3f(v3D[0],v3D[1],v3D[2]));
 
@@ -95,13 +99,13 @@ namespace ORB_SLAM3 {
         return res;*/
     }
 
-    Eigen::Vector2f KannalaBrandt8::projectMat(const cv::Point3f &p3D) {
+    Eigen::Vector2f FisheyePoly::projectMat(const cv::Point3f &p3D) {
         // std::cout << "Projecting mat v2f" << std::endl;
         cv::Point2f point = this->project(p3D);
         return Eigen::Vector2f(point.x, point.y);
     }
 
-    float KannalaBrandt8::uncertainty2(const Eigen::Matrix<double,2,1> &p2D)
+    float FisheyePoly::uncertainty2(const Eigen::Matrix<double,2,1> &p2D)
     {
         /*Eigen::Matrix<double,2,1> c;
         c << mvParameters[2], mvParameters[3];
@@ -112,75 +116,95 @@ namespace ORB_SLAM3 {
         return 1.f;
     }
 
-    Eigen::Vector3f KannalaBrandt8::unprojectEig(const cv::Point2f &p2D) {
+    Eigen::Vector3f FisheyePoly::unprojectEig(const cv::Point2f &p2D) {
         // std::cout << "Unprojecting v3f" << std::endl;
         cv::Point3f ray = this->unproject(p2D);
         return Eigen::Vector3f(ray.x, ray.y, ray.z);
     }
 
-    cv::Point3f KannalaBrandt8::unproject(const cv::Point2f &p2D) {
-        //Use Newthon method to solve for theta with good precision (err ~ e-6)
-        cv::Point2f pw((p2D.x - mvParameters[2]) / mvParameters[0], (p2D.y - mvParameters[3]) / mvParameters[1]);
-        float scale = 1.f;
-        float theta_d = sqrtf(pw.x * pw.x + pw.y * pw.y);
-        theta_d = fminf(fmaxf(-CV_PI / 2.f, theta_d), CV_PI / 2.f);
+    cv::Point3f FisheyePoly::unproject(const cv::Point2f &p2D) {
 
-        if (theta_d > 1e-8) {
-            //Compensate distortion iteratively
-            float theta = theta_d;
+        cv::Point2f P_d;
+        P_d.x = p2D.x - mvParameters[2];
+        P_d.y = p2D.y - mvParameters[3];
+        float P_d_norm = sqrt(P_d.x * P_d.x + P_d.y * P_d.y);
 
-            for (int j = 0; j < 10; j++) {
-                float theta2 = theta * theta, theta4 = theta2 * theta2, theta6 = theta4 * theta2, theta8 =
-                        theta4 * theta4;
-                float k0_theta2 = mvParameters[4] * theta2, k1_theta4 = mvParameters[5] * theta4;
-                float k2_theta6 = mvParameters[6] * theta6, k3_theta8 = mvParameters[7] * theta8;
-                float theta_fix = (theta * (1 + k0_theta2 + k1_theta4 + k2_theta6 + k3_theta8) - theta_d) /
-                                  (1 + 3 * k0_theta2 + 5 * k1_theta4 + 7 * k2_theta6 + 9 * k3_theta8);
-                theta = theta - theta_fix;
-                if (fabsf(theta_fix) < precision)
-                    break;
-            }
-            //scale = theta - theta_d;
-            scale = std::tan(theta) / theta_d;
-        }
+        float theta = P_d_norm / mvParameters[4];
 
-        return cv::Point3f(pw.x * scale, pw.y * scale, 1.f);
+        return cv::Point3f(std::sin(theta) * P_d.x / P_d_norm,
+                           std::sin(theta) * P_d.y / P_d_norm,
+                           std::cos(theta));
     }
 
-    Eigen::Matrix<double, 2, 3> KannalaBrandt8::projectJac(const Eigen::Vector3d &v3D) {
+    Eigen::Matrix<double, 2, 3> FisheyePoly::projectJac(const Eigen::Vector3d &v3D) {
         // std::cout << "ProjJac" << std::endl;
-        double x2 = v3D[0] * v3D[0], y2 = v3D[1] * v3D[1], z2 = v3D[2] * v3D[2];
-        double r2 = x2 + y2;
-        double r = sqrt(r2);
-        double r3 = r2 * r;
-        double theta = atan2(r, v3D[2]);
 
-        double theta2 = theta * theta, theta3 = theta2 * theta;
-        double theta4 = theta2 * theta2, theta5 = theta4 * theta;
-        double theta6 = theta2 * theta4, theta7 = theta6 * theta;
-        double theta8 = theta4 * theta4, theta9 = theta8 * theta;
+        double cx = mvParameters[2];
+        double cy = mvParameters[3];
+        double k1 = mvParameters[4];
 
-        double f = theta + theta3 * mvParameters[4] + theta5 * mvParameters[5] + theta7 * mvParameters[6] +
-                  theta9 * mvParameters[7];
-        double fd = 1 + 3 * mvParameters[4] * theta2 + 5 * mvParameters[5] * theta4 + 7 * mvParameters[6] * theta6 +
-                   9 * mvParameters[7] * theta8;
+        double x = v3D[0];
+        double y = v3D[1];
+        double z = v3D[2];
+        
+        double R = sqrt(x * x + y * y + z * z);
+        double R_p = sqrt(x * x + y * y);
 
-        Eigen::Matrix<double, 2, 3> JacGood;
-        JacGood(0, 0) = mvParameters[0] * (fd * v3D[2] * x2 / (r2 * (r2 + z2)) + f * y2 / r3);
-        JacGood(1, 0) =
-                mvParameters[1] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
+        double theta = acos(z / R);
 
-        JacGood(0, 1) =
-                mvParameters[0] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
-        JacGood(1, 1) = mvParameters[1] * (fd * v3D[2] * y2 / (r2 * (r2 + z2)) + f * x2 / r3);
+        double f_theta  = k1 * theta;
 
-        JacGood(0, 2) = -mvParameters[0] * fd * v3D[0] / (r2 + z2);
-        JacGood(1, 2) = -mvParameters[1] * fd * v3D[1] / (r2 + z2);
+        
+        Eigen::Matrix<double, 2, 3> d_proj_d_p3d;
 
-        return JacGood;
+        d_proj_d_p3d(0, 0) =
+            k1 * std::pow(x, 2)*z/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1)*std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0)) - k1*std::pow(x, 2)*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::pow(std::pow(x, 2) + std::pow(y, 2), 3.0/2.0) + k1*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::sqrt(std::pow(x, 2) + std::pow(y, 2));
+        d_proj_d_p3d(1, 0) =
+            k1*x*y*z/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1)*std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0)) - k1*x*y*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::pow(std::pow(x, 2) + std::pow(y, 2), 3.0/2.0);
+        d_proj_d_p3d(0, 1) =
+            k1*x*y*z/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1)*std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0)) - k1*x*y*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::pow(std::pow(x, 2) + std::pow(y, 2), 3.0/2.0);
+        d_proj_d_p3d(1, 1) =
+            k1*std::pow(y, 2)*z/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1)*std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0)) - k1*std::pow(y, 2)*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::pow(std::pow(x, 2) + std::pow(y, 2), 3.0/2.0) + k1*std::acos(z/std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)))/std::sqrt(std::pow(x, 2) + std::pow(y, 2));
+        d_proj_d_p3d(0, 2) = -k1*x*(-std::pow(z, 2)/std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0) + std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), -1.0/2.0))/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1));
+        d_proj_d_p3d(1, 2) = -k1*y*(-std::pow(z, 2)/std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), 3.0/2.0) + std::pow(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2), -1.0/2.0))/(std::sqrt(std::pow(x, 2) + std::pow(y, 2))*std::sqrt(-std::pow(z, 2)/(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) + 1));
+        // d_proj_d_p3d(0, 3) = double(0); //Scalar(0);
+        // d_proj_d_p3d(1, 3) = double(0); //Scalar(0);
+        // std::cout << d_proj_d_p3d << std::endl;
+        return d_proj_d_p3d;
+        
+
+        // double x2 = v3D[0] * v3D[0], y2 = v3D[1] * v3D[1], z2 = v3D[2] * v3D[2];
+        // double r2 = x2 + y2;
+        // double r = sqrt(r2);
+        // double r3 = r2 * r;
+        // double theta = atan2(r, v3D[2]);
+
+        // double theta2 = theta * theta, theta3 = theta2 * theta;
+        // double theta4 = theta2 * theta2, theta5 = theta4 * theta;
+        // double theta6 = theta2 * theta4, theta7 = theta6 * theta;
+        // double theta8 = theta4 * theta4, theta9 = theta8 * theta;
+
+        // double f = theta + theta3 * mvParameters[4] + theta5 * mvParameters[5] + theta7 * mvParameters[6] +
+        //           theta9 * mvParameters[7];
+        // double fd = 1 + 3 * mvParameters[4] * theta2 + 5 * mvParameters[5] * theta4 + 7 * mvParameters[6] * theta6 +
+        //            9 * mvParameters[7] * theta8;
+
+        // Eigen::Matrix<double, 2, 3> JacGood;
+        // JacGood(0, 0) = mvParameters[0] * (fd * v3D[2] * x2 / (r2 * (r2 + z2)) + f * y2 / r3);
+        // JacGood(1, 0) =
+        //         mvParameters[1] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
+
+        // JacGood(0, 1) =
+        //         mvParameters[0] * (fd * v3D[2] * v3D[1] * v3D[0] / (r2 * (r2 + z2)) - f * v3D[1] * v3D[0] / r3);
+        // JacGood(1, 1) = mvParameters[1] * (fd * v3D[2] * y2 / (r2 * (r2 + z2)) + f * x2 / r3);
+
+        // JacGood(0, 2) = -mvParameters[0] * fd * v3D[0] / (r2 + z2);
+        // JacGood(1, 2) = -mvParameters[1] * fd * v3D[1] / (r2 + z2);
+
+        // return JacGood;
     }
 
-    bool KannalaBrandt8::ReconstructWithTwoViews(const std::vector<cv::KeyPoint>& vKeys1, const std::vector<cv::KeyPoint>& vKeys2, const std::vector<int> &vMatches12,
+    bool FisheyePoly::ReconstructWithTwoViews(const std::vector<cv::KeyPoint>& vKeys1, const std::vector<cv::KeyPoint>& vKeys2, const std::vector<int> &vMatches12,
                                           Sophus::SE3f &T21, std::vector<cv::Point3f> &vP3D, std::vector<bool> &vbTriangulated){
         if(!tvr){
             Eigen::Matrix3f K = this->toK_();
@@ -207,25 +231,25 @@ namespace ORB_SLAM3 {
     }
 
 
-    cv::Mat KannalaBrandt8::toK() {
+    cv::Mat FisheyePoly::toK() {
         cv::Mat K = (cv::Mat_<float>(3, 3)
                 << mvParameters[0], 0.f, mvParameters[2], 0.f, mvParameters[1], mvParameters[3], 0.f, 0.f, 1.f);
         return K;
     }
-    Eigen::Matrix3f KannalaBrandt8::toK_() {
+    Eigen::Matrix3f FisheyePoly::toK_() {
         Eigen::Matrix3f K;
         K << mvParameters[0], 0.f, mvParameters[2], 0.f, mvParameters[1], mvParameters[3], 0.f, 0.f, 1.f;
         return K;
     }
 
 
-    bool KannalaBrandt8::epipolarConstrain(GeometricCamera* pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2,
+    bool FisheyePoly::epipolarConstrain(GeometricCamera* pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2,
                                            const Eigen::Matrix3f& R12, const Eigen::Vector3f& t12, const float sigmaLevel, const float unc) {
         Eigen::Vector3f p3D;
         return this->TriangulateMatches(pCamera2,kp1,kp2,R12,t12,sigmaLevel,unc,p3D) > 0.0001f;
     }
 
-    bool KannalaBrandt8::matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
+    bool FisheyePoly::matchAndtriangulate(const cv::KeyPoint& kp1, const cv::KeyPoint& kp2, GeometricCamera* pOther,
                                              Sophus::SE3f& Tcw1, Sophus::SE3f& Tcw2,
                                              const float sigmaLevel1, const float sigmaLevel2,
                                              Eigen::Vector3f& x3Dtriangulated){
@@ -309,7 +333,7 @@ namespace ORB_SLAM3 {
         return true;
     }
 
-    float KannalaBrandt8::TriangulateMatches(GeometricCamera *pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const Eigen::Matrix3f& R12, const Eigen::Vector3f& t12, const float sigmaLevel, const float unc, Eigen::Vector3f& p3D) {
+    float FisheyePoly::TriangulateMatches(GeometricCamera *pCamera2, const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, const Eigen::Matrix3f& R12, const Eigen::Vector3f& t12, const float sigmaLevel, const float unc, Eigen::Vector3f& p3D) {
 
         Eigen::Vector3f r1 = this->unprojectEig(kp1.pt);
         Eigen::Vector3f r2 = pCamera2->unprojectEig(kp2.pt);
@@ -380,13 +404,13 @@ namespace ORB_SLAM3 {
         return z1;
     }
 
-    std::ostream & operator<<(std::ostream &os, const KannalaBrandt8 &kb) {
+    std::ostream & operator<<(std::ostream &os, const FisheyePoly &kb) {
         os << kb.mvParameters[0] << " " << kb.mvParameters[1] << " " << kb.mvParameters[2] << " " << kb.mvParameters[3] << " "
            << kb.mvParameters[4] << " " << kb.mvParameters[5] << " " << kb.mvParameters[6] << " " << kb.mvParameters[7];
         return os;
     }
 
-    std::istream & operator>>(std::istream &is, KannalaBrandt8 &kb) {
+    std::istream & operator>>(std::istream &is, FisheyePoly &kb) {
         float nextParam;
         for(size_t i = 0; i < 8; i++){
             assert(is.good());  //Make sure the input stream is good
@@ -397,7 +421,7 @@ namespace ORB_SLAM3 {
         return is;
     }
 
-    void KannalaBrandt8::Triangulate(const cv::Point2f &p1, const cv::Point2f &p2, const Eigen::Matrix<float,3,4> &Tcw1,
+    void FisheyePoly::Triangulate(const cv::Point2f &p1, const cv::Point2f &p2, const Eigen::Matrix<float,3,4> &Tcw1,
                                      const Eigen::Matrix<float,3,4> &Tcw2, Eigen::Vector3f &x3D)
     {
         Eigen::Matrix<float,4,4> A;
@@ -411,14 +435,13 @@ namespace ORB_SLAM3 {
         x3D = x3Dh.head(3)/x3Dh(3);
     }
 
-    bool KannalaBrandt8::IsEqual(GeometricCamera* pCam)
+    bool FisheyePoly::IsEqual(GeometricCamera* pCam)
     {
-        std::cout << "Checking if KannalaBrandt camera" << pCam -> GetType() << "is equal" ;
-        
+        std::cout << "Checking if FisheyePoly camera" << pCam -> GetType() << "is equal" ;
         if(pCam->GetType() != GeometricCamera::CAM_FISHEYE)
             return false;
 
-        KannalaBrandt8* pKBCam = (KannalaBrandt8*) pCam;
+        FisheyePoly* pKBCam = (FisheyePoly*) pCam;
 
         if(abs(precision - pKBCam->GetPrecision()) > 1e-6)
             return false;
@@ -435,7 +458,8 @@ namespace ORB_SLAM3 {
                 break;
             }
         }
-        return is_same_camera;
+        return false; //is_same_camera;
     }
 
 }
+
